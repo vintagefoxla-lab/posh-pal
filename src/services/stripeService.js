@@ -1,7 +1,7 @@
 import { loadStripe } from '@stripe/stripe-js';
 
 const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_TYooMQauvdEDq54NiTphI7jx';
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 let stripePromise;
 const getStripe = () => {

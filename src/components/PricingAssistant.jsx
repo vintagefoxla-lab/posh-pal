@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Tag, Search, TrendingUp, DollarSign, AlertCircle, Loader2, BarChart3, ArrowLeft, Zap, Clock, Sparkles, Info, TrendingDown } from 'lucide-react'
+import { Tag, Search, TrendingUp, DollarSign, AlertCircle, Loader2, BarChart3, ArrowLeft, Zap, Clock, Sparkles, Info, TrendingDown, Package, CheckCircle2, Lock } from 'lucide-react'
 import MarketInsights from './MarketInsights'
 
 // ─── Realistic Price Database (brand-based tiers) ────────────────────
@@ -150,6 +150,9 @@ const PricingAssistant = ({ onBack, isPro = false }) => {
     condition: 'Good'
   })
   const [feeBreakdown, setFeeBreakdown] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState(null)
   const categoryList = ['Jackets', 'Tops', 'Bottoms', 'Shoes', 'Accessories', 'Dresses', 'Sweaters', 'Other']
 
   const handleSearch = (e) => {
@@ -175,6 +178,40 @@ const PricingAssistant = ({ onBack, isPro = false }) => {
 
   const formatCurrency = (val) => {
     return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  }
+
+  const handleSaveToInventory = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: Math.random().toString(36).substring(2, 11),
+          title: `[Comp] ${formData.brand} ${formData.category}`,
+          description: `Price research for ${formData.brand} ${formData.category} in ${formData.condition} condition. Suggested price: ${results.suggestion}`,
+          price: results.suggestion.toString(),
+          brand: formData.brand,
+          size: "",
+          condition: formData.condition,
+          category: formData.category,
+          status: "Draft"
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to save to inventory')
+      
+      // Dispatch refresh event
+      window.dispatchEvent(new CustomEvent('inventory-updated'))
+      
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -284,6 +321,20 @@ const PricingAssistant = ({ onBack, isPro = false }) => {
                 </div>
                 <p className="text-5xl font-black text-emerald-900 text-center">${formatCurrency(results.suggestion)}</p>
                 <p className="text-xs text-emerald-700 font-medium mt-1 text-center">{results.conditionLabel} · {results.tier}</p>
+                
+                <div className="mt-4 flex gap-2">
+                  <button 
+                    onClick={handleSaveToInventory}
+                    disabled={saving || saved}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all ${
+                      saved ? 'bg-emerald-500 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    }`}
+                  >
+                    {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 
+                     saved ? <><CheckCircle2 className="w-3 h-3" /> Saved!</> : 
+                     <><Package className="w-3 h-3" /> Save to Inventory</>}
+                  </button>
+                </div>
                 
                 {/* Fee breakdown */}
                 {feeBreakdown && (

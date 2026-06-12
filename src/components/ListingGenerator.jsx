@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Camera, Copy, Check, Loader2, AlertCircle, Sparkles, ArrowLeft, Zap, Trophy } from 'lucide-react'
+import { Camera, Copy, Check, Loader2, AlertCircle, Sparkles, ArrowLeft, Zap, Trophy, Package, CheckCircle2 } from 'lucide-react'
 import { generateListingFromImage } from '../services/aiService'
 
 const ListingGenerator = ({ onBack, isPro }) => {
@@ -8,6 +8,8 @@ const ListingGenerator = ({ onBack, isPro }) => {
   const [result, setResult] = useState(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   
   const [generationsCount, setGenerationsCount] = useState(() => {
     const saved = localStorage.getItem('poshpal_daily_generations')
@@ -67,6 +69,40 @@ const ListingGenerator = ({ onBack, isPro }) => {
     navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleSaveToInventory = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: Math.random().toString(36).substring(2, 11),
+          title: result.title,
+          description: result.description,
+          price: "0", // Default price
+          brand: "", // To be filled by user
+          size: "",
+          condition: "Good",
+          category: "",
+          status: "Draft"
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to save to inventory')
+      
+      // Dispatch refresh event
+      window.dispatchEvent(new CustomEvent('inventory-updated'))
+      
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -211,12 +247,25 @@ const ListingGenerator = ({ onBack, isPro }) => {
               </div>
             </div>
 
-            <button 
-              onClick={() => {setImage(null); setResult(null); setError(null)}}
-              className="btn-secondary"
-            >
-              Generate Another
-            </button>
+            <div className="flex gap-3">
+              <button 
+                onClick={handleSaveToInventory}
+                disabled={saving || saved}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+                  saved ? 'bg-emerald-500 text-white' : 'btn-primary'
+                }`}
+              >
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 
+                 saved ? <><CheckCircle2 className="w-5 h-5" /> Saved!</> : 
+                 <><Package className="w-5 h-5" /> Save to Inventory</>}
+              </button>
+              <button 
+                onClick={() => {setImage(null); setResult(null); setError(null); setSaved(false)}}
+                className="btn-secondary flex-1"
+              >
+                Generate Another
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -9,6 +9,7 @@ import {
   CreditCard,
   Zap,
   ShoppingBag,
+  Package,
   TrendingUp,
   BarChart3,
   Users,
@@ -28,6 +29,7 @@ import PricingAssistant from './components/PricingAssistant'
 import BundleCalculator from './components/BundleCalculator'
 import SharingScheduler from './components/SharingScheduler'
 import CrossListing from './components/CrossListing'
+import InventoryManager from './components/InventoryManager'
 import { createCheckoutSession } from './services/stripeService'
 
 const SubscriptionPage = ({ onBack, isPro }) => {
@@ -242,6 +244,7 @@ const App = () => {
 
   const tools = [
     { id: 'listing', name: 'Listing Generator', icon: Camera, color: 'text-brand-600', bg: 'bg-brand-50', desc: 'AI description from photo' },
+    { id: 'inventory', name: 'Inventory Manager', icon: ShoppingBag, color: 'text-indigo-600', bg: 'bg-indigo-50', desc: 'Manage your active stock' },
     { id: 'pricing', name: 'Pricing Assistant', icon: Tag, color: 'text-emerald-600', bg: 'bg-emerald-50', desc: 'Find optimal comp prices' },
     { id: 'sharing', name: 'Sharing Scheduler', icon: Share2, color: 'text-violet-600', bg: 'bg-violet-50', desc: 'Auto-share closet items' },
     { id: 'bundle', name: 'Bundle Calculator', icon: Calculator, color: 'text-amber-600', bg: 'bg-amber-50', desc: 'Calculate deal margins' },
@@ -251,6 +254,7 @@ const App = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'listing': return <ListingGenerator onBack={() => setActiveTab('dashboard')} isPro={isPro} />
+      case 'inventory': return <InventoryManager onBack={() => setActiveTab('dashboard')} isPro={isPro} />
       case 'pricing': return <PricingAssistant onBack={() => setActiveTab('dashboard')} isPro={isPro} />
       case 'bundle': return <BundleCalculator onBack={() => setActiveTab('dashboard')} />
       case 'sharing': return <SharingScheduler onBack={() => setActiveTab('dashboard')} isPro={isPro} />
@@ -263,6 +267,7 @@ const App = () => {
   const navItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Home' },
     { id: 'listing', icon: Camera, label: 'List' },
+    { id: 'inventory', icon: Package, label: 'Stock' },
     { id: 'sharing', icon: Share2, label: 'Share' },
     { id: 'subscription', icon: Zap, label: 'Pro', badge: !isPro },
   ]
