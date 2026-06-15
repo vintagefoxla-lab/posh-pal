@@ -13,3 +13,4 @@ yarn-error.log*
 posh-pal-project.tar.gz
 vite.log
 /tmp/*
+*.log
