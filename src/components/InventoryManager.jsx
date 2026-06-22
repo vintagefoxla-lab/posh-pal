@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Package, Search, Plus, Edit3, Trash2, ArrowLeft, Tag, DollarSign, Clock, Eye, X, Save, Archive, AlertCircle, CheckCircle2, ChevronRight, Filter, Grid3X3, List, SlidersHorizontal, Loader2 } from 'lucide-react'
+import MarketInsights from './MarketInsights'
+
+import ListingGenerator from './ListingGenerator'
 
 // ─── Status Badge ───────────────────────────────────────────────────
 
@@ -94,7 +97,7 @@ const ItemCard = ({ item, onSelect, onDelete }) => (
 
 // ─── Item Detail Modal ──────────────────────────────────────────────
 
-const ItemDetail = ({ item, onSave, onDelete, onClose }) => {
+const ItemDetail = ({ item, onSave, onDelete, onClose, isPro }) => {
   const [form, setForm] = useState({ ...item })
   const [saving, setSaving] = useState(false)
 
@@ -192,6 +195,18 @@ const ItemDetail = ({ item, onSave, onDelete, onClose }) => {
             />
           </div>
 
+          {/* Market Insights — powered by the new component */}
+          {(form.category?.toLowerCase().includes('shoe') || form.category?.toLowerCase().includes('sneaker')) && (
+            <MarketInsights 
+              brand={form.brand} 
+              category={form.category} 
+              condition={form.condition}
+              tierName="Premium"
+              demand={75}
+              poshpal_pro={isPro}
+            />
+          )}
+
           {/* Saved date info */}
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-2 text-xs text-slate-400">
             <Clock className="w-3.5 h-3.5" />
@@ -227,7 +242,7 @@ const ItemDetail = ({ item, onSave, onDelete, onClose }) => {
 
 // ─── Main InventoryManager Component ────────────────────────────────
 
-const InventoryManager = ({ onBack, setActiveTab, isPro = false }) => {
+const InventoryManager = ({ onBack, setActiveTab, isPro = false, userFetch }) => {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedItem, setSelectedItem] = useState(null)
@@ -239,7 +254,7 @@ const InventoryManager = ({ onBack, setActiveTab, isPro = false }) => {
   const fetchInventory = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/inventory')
+      const response = await userFetch('/api/inventory')
       if (response.ok) {
         const data = await response.json()
         setItems(data)
@@ -268,7 +283,7 @@ const InventoryManager = ({ onBack, setActiveTab, isPro = false }) => {
   // Delete item
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`/api/inventory/${id}`, { method: 'DELETE' })
+      const response = await userFetch(`/api/inventory/${id}`, { method: 'DELETE' })
       if (response.ok) {
         setItems(items.filter(i => i.id !== id))
         if (selectedItem?.id === id) setSelectedItem(null)
@@ -281,7 +296,7 @@ const InventoryManager = ({ onBack, setActiveTab, isPro = false }) => {
   // Save edited item
   const handleSaveItem = async (updated) => {
     try {
-      const response = await fetch(`/api/inventory/${updated.id}`, {
+      const response = await userFetch(`/api/inventory/${updated.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
@@ -463,6 +478,7 @@ const InventoryManager = ({ onBack, setActiveTab, isPro = false }) => {
           onSave={handleSaveItem}
           onDelete={handleDelete}
           onClose={() => setSelectedItem(null)}
+          isPro={isPro}
         />
       )}
     </div>

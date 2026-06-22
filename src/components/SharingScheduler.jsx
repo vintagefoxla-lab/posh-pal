@@ -1,36 +1,103 @@
 import React, { useState, useEffect } from 'react'
-import { Share2, Clock, Calendar, CheckCircle2, Play, Pause, Trash2, Plus, ArrowLeft, Bell, Zap, TrendingUp, Lock, Trophy } from 'lucide-react'
+import { Share2, Clock, Calendar, CheckCircle2, Play, Pause, Trash2, Plus, ArrowLeft, Bell, Zap, TrendingUp, Lock, Trophy, Loader2 } from 'lucide-react'
 
-const SharingScheduler = ({ onBack, isPro }) => {
+const SharingScheduler = ({ onBack, isPro, userFetch }) => {
   const [active, setActive] = useState(false)
-  const [shares, setShares] = useState(847)
-  const [views, setViews] = useState(3210)
-  
-  const [schedule, setSchedule] = useState([
-    { id: 1, time: '09:00', label: 'Morning Share' },
-    { id: 2, time: '12:00', label: 'Lunch Break' },
-    { id: 3, time: '19:00', label: 'Evening Peak' },
-    { id: 4, time: '22:00', label: 'Night Owl' },
-  ])
+  const [shares, setShares] = useState(0)
+  const [views, setViews] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [schedule, setSchedule] = useState([])
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [newSlot, setNewSlot] = useState({ time: '12:00', label: '' })
 
-  useEffect(() => {
-    let interval
-    if (active && isPro) {
-      interval = setInterval(() => {
-        setShares(prev => prev + Math.floor(Math.random() * 2) + 1)
-        setViews(prev => prev + Math.floor(Math.random() * 5) + 2)
-      }, 8000)
+  const fetchBotConfig = async () => {
+    try {
+      const response = await userFetch('/api/bot/config')
+      if (response.ok) {
+        const data = await response.json()
+        setActive(data.config.status === 'Running')
+        setShares(data.stats.shares_count)
+        setViews(data.stats.views_count)
+      }
+    } catch (error) {
+      console.error('Failed to fetch bot config:', error)
+    } finally {
+      setLoading(false)
     }
-    return () => clearInterval(interval)
-  }, [active, isPro])
-
-  const toggleActive = () => {
-    if (!isPro) return
-    setActive(!active)
   }
 
-  const removeSlot = (id) => {
-    setSchedule(schedule.filter(s => s.id !== id))
+  const fetchSchedule = async () => {
+    try {
+      const response = await userFetch('/api/bot/schedule')
+      if (response.ok) {
+        const data = await response.json()
+        setSchedule(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch schedule:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchBotConfig()
+    fetchSchedule()
+  }, [])
+
+  // Poll for stats updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (active) {
+        fetchBotConfig()
+      }
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [active])
+
+  const toggleActive = async () => {
+    if (!isPro) return
+    const newStatus = active ? 'Paused' : 'Running'
+    try {
+      const response = await userFetch('/api/bot/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+      if (response.ok) {
+        setActive(!active)
+      }
+    } catch (error) {
+      console.error('Failed to toggle bot status:', error)
+    }
+  }
+
+  const removeSlot = async (id) => {
+    if (!isPro) return
+    try {
+      const response = await userFetch(`/api/bot/schedule/${id}`, { method: 'DELETE' })
+      if (response.ok) {
+        setSchedule(schedule.filter(s => s.id !== id))
+      }
+    } catch (error) {
+      console.error('Failed to remove slot:', error)
+    }
+  }
+
+  const addSlot = async () => {
+    if (!isPro) return
+    try {
+      const response = await userFetch('/api/bot/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSlot)
+      })
+      if (response.ok) {
+        fetchSchedule()
+        setShowAddModal(false)
+        setNewSlot({ time: '12:00', label: '' })
+      }
+    } catch (error) {
+      console.error('Failed to add slot:', error)
+    }
   }
 
   const stats = [
@@ -38,6 +105,15 @@ const SharingScheduler = ({ onBack, isPro }) => {
     { label: 'Engagement', value: '+23%', sub: 'vs yesterday' },
     { label: 'Views', value: (views / 1000).toFixed(1) + 'k', sub: 'Generated today' },
   ]
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="w-10 h-10 text-violet-600 animate-spin mb-4" />
+        <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">Loading Automation...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="fade-in-up">
@@ -107,7 +183,7 @@ const SharingScheduler = ({ onBack, isPro }) => {
                     {active ? 'Bot is Running' : 'Bot is Paused'}
                   </p>
                   <p className={`text-xs ${active ? 'text-emerald-700' : 'text-slate-400'}`}>
-                    {active ? 'Next share at 12:00 PM' : 'Tap to start auto-sharing'}
+                    {active ? 'Next share coming up soon' : 'Tap to start auto-sharing'}
                   </p>
                 </div>
               </div>
@@ -164,7 +240,10 @@ const SharingScheduler = ({ onBack, isPro }) => {
             </div>
             
             {isPro && (
-              <button className="w-full py-3 mt-2 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-violet-200 hover:text-violet-500 hover:bg-violet-50/30 transition-all">
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="w-full py-3 mt-2 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-violet-200 hover:text-violet-500 hover:bg-violet-50/30 transition-all"
+              >
                 <Plus className="w-4 h-4 inline mr-1.5" />
                 Add Schedule Slot
               </button>
@@ -194,18 +273,64 @@ const SharingScheduler = ({ onBack, isPro }) => {
           </div>
 
           {/* Pro upsell */}
-          <div className="mt-4 p-4 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
-              <div>
-                <p className="text-sm font-bold text-white">24/7 Auto-Sharing</p>
-                <p className="text-xs text-slate-400">Unlimited shares with Pro plan</p>
+          {!isPro && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
+                <div>
+                  <p className="text-sm font-bold text-white">24/7 Auto-Sharing</p>
+                  <p className="text-xs text-slate-400">Unlimited shares with Pro plan</p>
+                </div>
               </div>
+              <span className="badge-accent text-[9px]">Pro</span>
             </div>
-            <span className="badge-accent text-[9px]">Pro</span>
-          </div>
+          )}
         </div>
       </div>
+
+      {/* Simple Add Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl fade-in-up">
+            <h3 className="text-lg font-black text-slate-900 mb-4">Add Schedule Slot</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="input-label">Time (24h format)</label>
+                <input 
+                  type="time" 
+                  className="input-field" 
+                  value={newSlot.time}
+                  onChange={(e) => setNewSlot({...newSlot, time: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="input-label">Label</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  placeholder="e.g. Midday Boost"
+                  value={newSlot.label}
+                  onChange={(e) => setNewSlot({...newSlot, label: e.target.value})}
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={addSlot}
+                  className="btn-primary flex-1"
+                >
+                  Add Slot
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

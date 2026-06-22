@@ -141,7 +141,7 @@ function calcPoshmarkFee(price) {
 
 // ─── Component ──────────────────────────────────────────────────────
 
-const PricingAssistant = ({ onBack, isPro = false }) => {
+const PricingAssistant = ({ onBack, isPro = false, userFetch }) => {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
   const [formData, setFormData] = useState({
@@ -181,17 +181,18 @@ const PricingAssistant = ({ onBack, isPro = false }) => {
   }
 
   const handleSaveToInventory = async () => {
+    if (!results) return
     setSaving(true)
     setError(null)
     try {
-      const response = await fetch('/api/inventory', {
+      const response = await userFetch('/api/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: Math.random().toString(36).substring(2, 11),
-          title: `[Comp] ${formData.brand} ${formData.category}`,
-          description: `Price research for ${formData.brand} ${formData.category} in ${formData.condition} condition. Suggested price: ${results.suggestion}`,
-          price: results.suggestion.toString(),
+          title: `${formData.brand} ${formData.category}`,
+          description: `Price research generated listing for ${formData.brand} ${formData.category}. Condition: ${formData.condition}.`,
+          price: String(results.suggestion),
           brand: formData.brand,
           size: "",
           condition: formData.condition,
@@ -200,15 +201,16 @@ const PricingAssistant = ({ onBack, isPro = false }) => {
         })
       })
 
-      if (!response.ok) throw new Error('Failed to save to inventory')
-      
-      // Dispatch refresh event
-      window.dispatchEvent(new CustomEvent('inventory-updated'))
-      
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      if (response.ok) {
+        setSaved(true)
+        window.dispatchEvent(new Event('inventory-updated'))
+        setTimeout(() => setSaved(false), 3000)
+      } else {
+        throw new Error('Failed to save')
+      }
     } catch (err) {
-      setError(err.message)
+      console.error('Failed to save to inventory:', err)
+      setError("Failed to save. Please try again.")
     } finally {
       setSaving(false)
     }

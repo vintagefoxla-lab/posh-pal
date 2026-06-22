@@ -21,7 +21,10 @@ import {
   CheckCircle2,
   ArrowLeft,
   Loader2,
-  Trophy
+  Trophy,
+  History,
+  Gift,
+  BookOpen
 } from 'lucide-react'
 
 import ListingGenerator from './components/ListingGenerator'
@@ -30,6 +33,13 @@ import BundleCalculator from './components/BundleCalculator'
 import SharingScheduler from './components/SharingScheduler'
 import CrossListing from './components/CrossListing'
 import InventoryManager from './components/InventoryManager'
+import OfferManager from './components/OfferManager'
+import AnalyticsDashboard from './components/AnalyticsDashboard'
+import ReferralSection from './components/ReferralSection'
+import ReferralLanding from './components/ReferralLanding'
+import SwitchUser from './components/SwitchUser'
+import InfluencerLandingPage from './components/InfluencerLandingPage'
+import { Blog, BlogPost } from './components/Blog'
 import { createCheckoutSession } from './services/stripeService'
 
 const SubscriptionPage = ({ onBack, isPro }) => {
@@ -86,8 +96,8 @@ const SubscriptionPage = ({ onBack, isPro }) => {
               { icon: Sparkles, text: 'Unlimited AI Listing Generation', desc: 'Auto-generate titles, descriptions & tags from photos', color: 'text-brand-600', bg: 'bg-brand-50' },
               { icon: Target, text: 'Advanced Pricing Comps', desc: 'Real-time market analysis & optimal price suggestions', color: 'text-emerald-600', bg: 'bg-emerald-50' },
               { icon: Clock, text: '24/7 Auto-Sharing Bot', desc: 'Automatic closet sharing around the clock', color: 'text-violet-600', bg: 'bg-violet-50' },
+              { icon: History, text: 'Automated Offer Engine', desc: 'Send bulk offers to likers while you sleep', color: 'text-amber-600', bg: 'bg-amber-50' },
               { icon: ExternalLink, text: 'Cross-List to 4 Platforms', desc: 'eBay, Mercari, Depop & more with one click', color: 'text-rose-600', bg: 'bg-rose-50' },
-              { icon: Rocket, text: 'Priority Support', desc: 'Fast-track responses & dedicated onboarding', color: 'text-amber-600', bg: 'bg-amber-50' },
             ].map((feat, i) => (
               <div key={i} className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
                 <div className={`${feat.bg} ${feat.color} w-10 h-10 rounded-xl flex items-center justify-center shrink-0`}>
@@ -230,37 +240,104 @@ const Dashboard = ({ tools, setActiveTab, isPro }) => (
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [userId, setUserId] = useState(localStorage.getItem('poshpal_user_id') || 'default_user')
   const [isPro, setIsPro] = useState(localStorage.getItem('poshpal_pro') === 'true')
+  const [activeBlogPost, setActiveBlogPost] = useState(null)
+  const [referralCode, setReferralCode] = useState(null)
+
+  useEffect(() => {
+    localStorage.setItem('poshpal_user_id', userId)
+    
+    // Auto-login/register
+    fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    })
+    .then(res => res.json())
+    .then(user => {
+      setIsPro(user.is_pro === 1)
+      localStorage.setItem('poshpal_pro', user.is_pro === 1 ? 'true' : 'false')
+    })
+  }, [userId])
+
+  // Custom fetch with user header
+  const userFetch = (url, options = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'X-User-ID': userId
+      }
+    })
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('success') === 'true') {
       setIsPro(true)
       localStorage.setItem('poshpal_pro', 'true')
-      // Clean up URL
       window.history.replaceState({}, document.title, "/")
+    }
+
+    const path = window.location.pathname
+    // NEW: Check for /ref/:code route
+    const refMatch = path.match(/^\/ref\/(.+)$/)
+    if (refMatch) {
+      setReferralCode(refMatch[1])
+      setActiveTab('ref-landing')
+      return
+    }
+
+    if (path.startsWith('/blog/')) {
+      const slug = path.split('/')[2]
+      if (slug) {
+        setActiveBlogPost(slug)
+        setActiveTab('blog-post')
+      }
+    } else if (path === '/blog') {
+      setActiveTab('blog')
     }
   }, [])
 
   const tools = [
     { id: 'listing', name: 'Listing Generator', icon: Camera, color: 'text-brand-600', bg: 'bg-brand-50', desc: 'AI description from photo' },
     { id: 'inventory', name: 'Inventory Manager', icon: ShoppingBag, color: 'text-indigo-600', bg: 'bg-indigo-50', desc: 'Manage your active stock' },
+    { id: 'analytics', name: 'Analytics', icon: BarChart3, color: 'text-brand-600', bg: 'bg-brand-50', desc: 'Track performance metrics' },
     { id: 'pricing', name: 'Pricing Assistant', icon: Tag, color: 'text-emerald-600', bg: 'bg-emerald-50', desc: 'Find optimal comp prices' },
     { id: 'sharing', name: 'Sharing Scheduler', icon: Share2, color: 'text-violet-600', bg: 'bg-violet-50', desc: 'Auto-share closet items' },
+    { id: 'offers', name: 'Offer Engine', icon: History, color: 'text-amber-600', bg: 'bg-amber-50', desc: 'Auto-respond to likes' },
     { id: 'bundle', name: 'Bundle Calculator', icon: Calculator, color: 'text-amber-600', bg: 'bg-amber-50', desc: 'Calculate deal margins' },
     { id: 'cross', name: 'Cross-Listing', icon: ExternalLink, color: 'text-rose-600', bg: 'bg-rose-50', desc: 'Export to eBay & Mercari' },
+    { id: 'blog', name: 'Success Blog', icon: BookOpen, color: 'text-brand-600', bg: 'bg-brand-50', desc: 'Reseller stories & tips' },
+    { id: 'referral', name: 'Refer & Earn', icon: Gift, color: 'text-emerald-600', bg: 'bg-emerald-50', desc: 'Share Posh Pal, get rewards' },
+    { id: 'referral-landing', name: 'Referral Landing', icon: Users, color: 'text-brand-600', bg: 'bg-brand-50', desc: 'Marketing landing page' },
   ]
+
+  const handlePostClick = (slug) => {
+    setActiveBlogPost(slug)
+    setActiveTab('blog-post')
+    window.history.pushState({}, '', `/blog/${slug}`)
+  }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'listing': return <ListingGenerator onBack={() => setActiveTab('dashboard')} isPro={isPro} />
-      case 'inventory': return <InventoryManager onBack={() => setActiveTab('dashboard')} isPro={isPro} />
-      case 'pricing': return <PricingAssistant onBack={() => setActiveTab('dashboard')} isPro={isPro} />
-      case 'bundle': return <BundleCalculator onBack={() => setActiveTab('dashboard')} />
-      case 'sharing': return <SharingScheduler onBack={() => setActiveTab('dashboard')} isPro={isPro} />
-      case 'cross': return <CrossListing onBack={() => setActiveTab('dashboard')} isPro={isPro} />
-      case 'subscription': return <SubscriptionPage onBack={() => setActiveTab('dashboard')} isPro={isPro} />
-      default: return <Dashboard tools={tools} setActiveTab={setActiveTab} isPro={isPro} />
+      case 'listing': return <ListingGenerator onBack={() => setActiveTab('dashboard')} isPro={isPro} userFetch={userFetch} />
+      case 'inventory': return <InventoryManager onBack={() => setActiveTab('dashboard')} isPro={isPro} userFetch={userFetch} setActiveTab={setActiveTab} />
+      case 'analytics': return <AnalyticsDashboard onBack={() => setActiveTab('dashboard')} userFetch={userFetch} />
+      case 'pricing': return <PricingAssistant onBack={() => setActiveTab('dashboard')} isPro={isPro} userFetch={userFetch} />
+      case 'bundle': return <BundleCalculator onBack={() => setActiveTab('dashboard')} userFetch={userFetch} />
+      case 'sharing': return <SharingScheduler onBack={() => setActiveTab('dashboard')} isPro={isPro} userFetch={userFetch} />
+      case 'offers': return <OfferManager onBack={() => setActiveTab('dashboard')} isPro={isPro} userFetch={userFetch} />
+      case 'cross': return <CrossListing onBack={() => setActiveTab('dashboard')} isPro={isPro} userFetch={userFetch} />
+      case 'blog': return <Blog onBack={() => setActiveTab('dashboard')} onPostClick={handlePostClick} userFetch={userFetch} />
+      case 'blog-post': return <BlogPost slug={activeBlogPost} onBack={() => setActiveTab('blog')} userFetch={userFetch} />
+      case 'referral': return <ReferralSection onBack={() => setActiveTab('dashboard')} userFetch={userFetch} />
+      case 'referral-landing': return <ReferralLanding onBack={() => setActiveTab('dashboard')} userFetch={userFetch} />
+      case 'ref-landing': 
+        return <InfluencerLandingPage code={referralCode} onBack={() => setActiveTab('dashboard')} userFetch={userFetch} />
+      case 'subscription': return <SubscriptionPage onBack={() => setActiveTab('dashboard')} isPro={isPro} userFetch={userFetch} />
+      default: return <Dashboard tools={tools} setActiveTab={setActiveTab} isPro={isPro} userFetch={userFetch} />
     }
   }
 
@@ -294,6 +371,12 @@ const App = () => {
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-tight">AI Reselling</p>
             </div>
           </div>
+
+          {/* User Switcher (Simulation) */}
+          <div className="hidden md:flex">
+            <SwitchUser currentUserId={userId} onSwitch={setUserId} userFetch={userFetch} />
+          </div>
+
           <button 
             onClick={() => setActiveTab('subscription')}
             className={`relative flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all duration-200 shadow-lg ${
