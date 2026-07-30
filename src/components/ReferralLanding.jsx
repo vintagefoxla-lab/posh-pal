@@ -1,5 +1,6 @@
 import React from 'react'
 import { ArrowLeft, Zap, ShoppingBag, Sparkles, Star, Users, CheckCircle2, ChevronRight, TrendingUp, Clock, ExternalLink, Gift, Shield, Award } from 'lucide-react'
+import { SocialProofGrid } from '../assets/marketing'
 
 const ReferralLanding = ({ onBack }) => {
   const perks = [
@@ -118,29 +119,9 @@ const ReferralLanding = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Testimonials */}
-      <div className="card p-6 mb-5">
-        <h2 className="text-lg font-black text-slate-900 mb-4">Reseller Success Stories</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {testimonials.map((t, i) => (
-            <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center font-black text-brand-600 text-sm">
-                  {t.name[0]}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800">{t.name}</p>
-                  <p className="text-[10px] text-slate-400">{t.handle}</p>
-                </div>
-              </div>
-              <p className="text-sm text-slate-600 italic mb-3">"{t.text}"</p>
-              <div className="flex gap-3 text-[10px] font-bold">
-                <span className="text-brand-600">{t.items} items listed</span>
-                <span className="text-emerald-600">{t.revenue} revenue</span>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Testimonials (Marketing Asset) */}
+      <div className="mb-5">
+        <SocialProofGrid className="card p-6 md:p-8" />
       </div>
 
       {/* SEO Blog Template Placeholder */}
