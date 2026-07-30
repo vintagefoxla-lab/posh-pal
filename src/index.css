@@ -196,4 +196,201 @@
 
 .animate-pulse-glow {
   animation: pulse-glow 2s infinite;
+}/* ═══════════════════════════════════════════════════════════════════════
+   Phase 6 CSS Additions
+   Add these utility classes to src/index.css under @layer components
+   
+   Implements: Multi-User Switcher, Influencer Landing Page, 
+               Analytics Dashboard Phase 6 Updates
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── User Avatar ───────────────────────────────────────────────────
+   Circular avatar for the user switcher and leaderboard.
+   Variants: user-avatar-sm (28px), user-avatar (32px), user-avatar-lg (48px) */
+
+.user-avatar-sm {
+  @apply w-7 h-7 rounded-full flex items-center justify-center font-black text-[10px] shrink-0;
+}
+
+.user-avatar {
+  @apply w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0;
+}
+
+.user-avatar-lg {
+  @apply w-12 h-12 rounded-full flex items-center justify-center font-black text-lg shrink-0;
+}
+
+/* ─── Role Badges ───────────────────────────────────────────────────
+   Used in SwitchUser dropdown to indicate user type/role */
+
+.role-badge {
+  @apply text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest inline-flex items-center;
+}
+
+.role-badge-influencer {
+  @apply bg-amber-100 text-amber-700;
+}
+
+.role-badge-standard {
+  @apply bg-slate-100 text-slate-500;
+}
+
+.role-badge-power {
+  @apply bg-brand-100 text-brand-600;
+}
+
+.role-badge-new {
+  @apply bg-emerald-100 text-emerald-600;
+}
+
+/* ─── User Dropdown ─────────────────────────────────────────────────
+   Dropdown panel for the multi-user switcher */
+
+.user-dropdown {
+  @apply absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl border border-slate-100 shadow-xl z-30 overflow-hidden;
+}
+
+/* ─── Filter Bar ────────────────────────────────────────────────────
+   Horizontal filter bar for the analytics dashboard */
+
+.filter-bar {
+  @apply flex flex-wrap items-center gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100;
+}
+
+/* ─── Filter Chips ──────────────────────────────────────────────────
+   Toggle buttons within the filter bar */
+
+.filter-chip {
+  @apply px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all duration-150;
+}
+
+.filter-chip-active {
+  @apply bg-brand-500 text-white shadow-sm shadow-brand-500/20;
+}
+
+.filter-chip-inactive {
+  @apply bg-white text-slate-500 border border-slate-200 hover:border-brand-200 hover:text-brand-600;
+}
+
+/* ─── KPI Cards ────────────────────────────────────────────────────
+   Stat cards used in the referral campaign KPIs section */
+
+.kpi-card {
+  @apply p-4 rounded-2xl border transition-all hover:shadow-sm;
+}
+
+/* ─── Table Styles ──────────────────────────────────────────────────
+   Leaderboard table */
+
+.leaderboard-table {
+  @apply w-full min-w-[500px];
+}
+
+.leaderboard-header {
+  @apply text-left px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest;
+}
+
+.leaderboard-row {
+  @apply border-b border-slate-50 hover:bg-slate-50 transition-colors;
+}
+
+.leaderboard-cell {
+  @apply px-6 py-3;
+}
+
+/* ─── Code Pill ─────────────────────────────────────────────────────
+   Styled code display for the influencer landing page */
+
+.code-pill {
+  @apply flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3;
+}
+
+/* ─── Landing Page Hero ─────────────────────────────────────────────
+   Hero gradient section for the influencer landing page */
+
+.landing-hero {
+  @apply bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-8 md:p-12 text-center relative overflow-hidden;
+}
+
+/* ─── Step Connector ────────────────────────────────────────────────
+   Connector arrow between "How It Works" steps (desktop only) */
+
+.step-connector {
+  @apply hidden sm:block absolute -right-6 top-1/2 -translate-y-1/2 text-slate-200;
+}
+
+/* ─── Rank Badge ────────────────────────────────────────────────────
+   Numeric rank indicator for the leaderboard */
+
+.rank-badge {
+  @apply w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black;
+}
+
+.rank-1 {
+  @apply bg-amber-100 text-amber-700;
+}
+
+.rank-2 {
+  @apply bg-slate-100 text-slate-600;
+}
+
+.rank-3 {
+  @apply bg-amber-50 text-amber-600;
+}
+
+.rank-others {
+  @apply bg-slate-50 text-slate-400;
+}
+
+/* ─── Influencer Attribution ────────────────────────────────────────
+   Influencer credit line on the landing page */
+
+.influencer-credit {
+  @apply flex items-center justify-center gap-3;
+}
+
+/* ─── Trust Row ────────────────────────────────────────────────────
+   Row of trust badges (e.g., "No credit card", "Cancel anytime") */
+
+.trust-row {
+  @apply flex items-center justify-center gap-4 text-xs;
+}
+
+.trust-item {
+  @apply flex items-center gap-1.5 text-slate-500;
+}
+
+/* ─── Social Proof Stats Bar ───────────────────────────────────────
+   Three-column stat bar below the hero section */
+
+.social-proof-bar {
+  @apply grid grid-cols-3 divide-x divide-slate-100;
+}
+
+/* ─── Gradient Decorative Blobs ────────────────────────────────────
+   Background decorative elements for hero sections */
+
+.blob-top-right {
+  @apply absolute -top-20 -right-20 w-72 h-72 bg-brand-500/10 rounded-full blur-3xl;
+}
+
+.blob-bottom-left {
+  @apply absolute -bottom-10 -left-10 w-56 h-56 bg-amber-500/5 rounded-full blur-3xl;
+}
+
+/* ─── Responsive extensions ────────────────────────────────────────
+   Additional responsive utilities for Phase 6 components */
+
+@media (max-width: 640px) {
+  .user-dropdown {
+    @apply fixed top-auto bottom-0 left-0 right-0 w-full rounded-b-none rounded-t-2xl shadow-2xl;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    @apply gap-1.5;
+  }
 }

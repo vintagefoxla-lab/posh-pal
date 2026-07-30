@@ -73,12 +73,71 @@ const marketplaceRules = {
     csvHeaders: ['Title', 'Description', 'Price', 'Brand', 'Size', 'Category', 'Tags'],
     formatTitle: (title) => title.slice(0, 100).trim(),
     formatDescription: (desc) => {
-      // Depop is very visual, short descriptions with hashtags work best
-      return desc
+      // Depop is very visual, short descriptions with hashtags work best.
+      // Auto-move hashtags to the bottom for cleaner presentation
+      const hashRegex = /#\w+/g
+      const hashtags = (desc.match(hashRegex) || []).join(' ')
+      const cleanBody = desc.replace(hashRegex, '').replace(/\s+/g, ' ').trim()
+      const body = hashtags
+        ? `${cleanBody}\n\n${hashtags}`
+        : cleanBody
+      return body
         .split('\n')
         .slice(0, 8)
         .join('\n')
         .slice(0, 2500)
+    },
+  },
+  vinted: {
+    name: 'Vinted',
+    titleMax: 120,
+    descMax: 5000,
+    maxPhotos: 20,
+    categoryMap: {
+      'Jackets': 'Coats & Jackets',
+      'Tops': 'Tops',
+      'Bottoms': 'Trousers',
+      'Shoes': 'Shoes',
+      'Accessories': 'Accessories & Jewellery',
+      'Dresses': 'Dresses',
+      'Sweaters': 'Jumpers & Cardigans',
+      'Other': 'Other',
+    },
+    csvHeaders: ['Title', 'Description', 'Brand', 'Price', 'Size', 'Condition', 'Photos URL'],
+    formatTitle: (title) => title.slice(0, 120).trim(),
+    formatDescription: (desc) => {
+      // Vinted wants clean, honest descriptions for sustainable fashion buyers
+      return desc
+        .replace(/•/g, '-')
+        .replace(/\n{3,}/g, '\n\n')
+        .slice(0, 5000)
+    },
+  },
+  grailed: {
+    name: 'Grailed',
+    titleMax: 100,
+    descMax: 4000,
+    maxPhotos: 10,
+    categoryMap: {
+      'Jackets': 'Outerwear',
+      'Tops': 'Tops',
+      'Bottoms': 'Bottoms',
+      'Shoes': 'Footwear',
+      'Accessories': 'Accessories',
+      'Dresses': 'Dresses',
+      'Sweaters': 'Sweaters',
+      'Other': 'Other',
+    },
+    csvHeaders: ['Title', 'Description', 'Price', 'Brand', 'Size', 'Condition', 'Category', 'Tags'],
+    formatTitle: (title) => title.slice(0, 100).trim(),
+    formatDescription: (desc) => {
+      // Grailed audience values authenticity and detail
+      // Auto-move any #hashtags to the end
+      const hashtagRegex = /#\w+/g
+      const hashtags = (desc.match(hashtagRegex) || []).join(' ')
+      const cleanDesc = desc.replace(hashtagRegex, '').replace(/\s+/g, ' ').trim()
+      const result = hashtags ? `${cleanDesc}\n\n${hashtags}` : cleanDesc
+      return result.slice(0, 4000)
     },
   },
 }
@@ -239,10 +298,31 @@ const CrossListing = ({ onBack, isPro }) => {
     },
     depop: {
       tips: [
-        'Depop is style-focused — use fashion-forward keywords',
-        'Keep descriptions short and visual with relevant hashtags',
-        'Only 4 photos allowed — make each one count',
-        'Tag items with multiple relevant style tags',
+        'Depop is style-focused — curate aesthetic, lifestyle photos that tell a story',
+        'Auto-formatting moves your hashtags to the bottom for a clean look',
+        'Only 4 photos allowed — make each one count with styled flat lays',
+        'Tag items with multiple relevant style tags for better discovery',
+        'Depop buyers love vintage/vintage-inspired — highlight era and condition',
+      ],
+    },
+    vinted: {
+      tips: [
+        'Vinted buyers value sustainability — highlight eco-friendly materials',
+        'Price competitively — Vinted users compare across sellers',
+        'Use all 20 photo slots for maximum buyer confidence',
+        'Include measurements — Vinted buyers love detailed sizing info',
+        'Brand names matter more on Vinted — always include the brand',
+        'Bundle discounts work well on Vinted for faster sales',
+      ],
+    },
+    grailed: {
+      tips: [
+        'Grailed buyers prioritize detailed measurements — include pit-to-pit, length, inseam',
+        'Include clear, well-lit photos of tags and labels for authenticity verification',
+        'Describe condition honestly — Grailed community values transparency',
+        'Highlight designer, hype, or rare collaborations in the title',
+        'Price at or slightly below comps — Grailed users are knowledgeable about market value',
+        'Respond quickly to questions — serious buyers expect fast communication',
       ],
     },
   }
@@ -433,6 +513,8 @@ const CrossListing = ({ onBack, isPro }) => {
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black italic text-xl group-hover:scale-110 transition-transform ${
                         id === 'ebay' ? 'bg-blue-50 text-blue-600' :
                         id === 'mercari' ? 'bg-purple-50 text-purple-600' :
+                        id === 'vinted' ? 'bg-teal-50 text-teal-600' :
+                        id === 'grailed' ? 'bg-slate-800 text-white' :
                         'bg-rose-50 text-rose-600'
                       }`}>
                         {r.name[0]}
