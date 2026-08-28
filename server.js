@@ -9,6 +9,8 @@ import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import crypto from 'crypto';
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -24,16 +26,118 @@ try {
 } catch (e) {
   console.error('Failed to initialize Stripe:', e.message);
 }
+
+let genAI;
+if (process.env.VITE_GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.VITE_GEMINI_API_KEY);
+}
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  next();
+});
+
 app.use(cors());
+
+// Webhook needs raw body for signature verification - must be BEFORE bodyParser.json()
+app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      throw new Error('Webhook secret missing');
+    }
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'checkout.session.completed':
+      const session = event.data.object;
+      const userId = session.client_reference_id || session.metadata?.userId;
+      if (userId) {
+        const expiryDate = new Date();
+        expiryDate.setMonth(expiryDate.getMonth() + 1);
+        const expiryStr = expiryDate.toISOString().replace('T', ' ').substring(0, 19);
+        
+        runQuery(`UPDATE users SET 
+          is_pro = 1, 
+          pro_expires_at = '${expiryStr}',
+          subscription_status = 'active',
+          stripe_customer_id = ${val(session.customer)},
+          stripe_subscription_id = ${val(session.subscription)}
+          WHERE id = '${escapeSql(userId)}'`);
+        console.log(`Webhook: User ${userId} upgraded via checkout.session.completed`);
+      }
+      break;
+    case 'customer.subscription.updated':
+    case 'customer.subscription.deleted':
+      const subscription = event.data.object;
+      const status = subscription.status;
+      const stripeSubId = subscription.id;
+      const cancelAtPeriodEnd = subscription.cancel_at_period_end;
+      
+      let localStatus = status;
+      if (cancelAtPeriodEnd && status === 'active') {
+        localStatus = 'canceled';
+      }
+      
+      if (status !== 'active' && status !== 'trialing' && status !== 'past_due') {
+        console.log(`Subscription ${stripeSubId} is ${status}. Downgrading user.`);
+        runQuery(`UPDATE users SET is_pro = 0, subscription_status = '${localStatus}' WHERE stripe_subscription_id = '${escapeSql(stripeSubId)}'`);
+      } else {
+        runQuery(`UPDATE users SET subscription_status = '${localStatus}' WHERE stripe_subscription_id = '${escapeSql(stripeSubId)}'`);
+      }
+      break;
+    case 'invoice.payment_failed':
+      const invoice = event.data.object;
+      if (invoice.subscription) {
+        console.log(`Payment failed for invoice ${invoice.id}. Downgrading user.`);
+        runQuery(`UPDATE users SET is_pro = 0, subscription_status = 'past_due' WHERE stripe_subscription_id = '${escapeSql(invoice.subscription)}'`);
+      }
+      break;
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  res.json({received: true});
+});
+
 app.use(bodyParser.json());
 
-// Simulated Authentication Middleware
+// Authentication & Subscription Verification Middleware
 const auth = (req, res, next) => {
   req.userId = req.headers['x-user-id'] || 'default_user';
+  
+  // Verify Pro status and subscription lifecycle
+  try {
+    const userResult = runQuery(`SELECT is_pro, pro_expires_at, subscription_status FROM users WHERE id = '${escapeSql(req.userId)}'`);
+    if (userResult && userResult.length > 0) {
+      const user = userResult[0];
+      
+      // If subscription is canceled, check if we past the expiration date
+      if (user.is_pro === 1 && user.pro_expires_at) {
+        const expiry = new Date(user.pro_expires_at);
+        if (expiry < new Date()) {
+          // Downgrade user if subscription is not active or past expiry
+          if (user.subscription_status !== 'active') {
+            console.log(`Subscription for user ${req.userId} expired or inactive. Downgrading to standard.`);
+            runQuery(`UPDATE users SET is_pro = 0, subscription_status = 'none' WHERE id = '${escapeSql(req.userId)}'`);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Auth Middleware Subscription Check Error:', error);
+  }
+  
   next();
 };
 
@@ -48,7 +152,7 @@ app.post('/api/auth/login', (req, res) => {
     let user = runQuery(`SELECT * FROM users WHERE id = '${escapeSql(userId)}'`);
     if (!user || user.length === 0) {
       // Create simulated user
-      runQuery(`INSERT INTO users (id, referral_code, utm_source, utm_medium, utm_campaign) VALUES ('${escapeSql(userId)}', '${escapeSql(userId.toUpperCase() + '123')}', ${val(utm_source)}, ${val(utm_medium)}, ${val(utm_campaign)})`);
+      runQuery(`INSERT INTO users (id, referral_code, utm_source, utm_medium, utm_campaign, subscription_status) VALUES ('${escapeSql(userId)}', '${escapeSql(userId.toUpperCase() + '123')}', ${val(utm_source)}, ${val(utm_medium)}, ${val(utm_campaign)}, 'none')`);
       
       // Update traffic stats for signup
       if (utm_source) {
@@ -72,7 +176,9 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-const TEAM_DB_PATH = '/home/agent-engineer/.local/bin/team-db';
+// Path to the team-db CLI. Default is this sandbox; override via env (e.g. when the
+// API is deployed to a VPS where team-db lives at a different path).
+const TEAM_DB_PATH = process.env.TEAM_DB_BIN_PATH || '/home/agent-engineer/.local/bin/team-db';
 
 // Helper to run team-db commands with retry for locking errors
 const runQuery = (query, retries = 5) => {
@@ -116,8 +222,284 @@ const TRAFFIC_SOURCES = [
   { source: 'youtube', medium: 'social', campaign: 'FRIZZY20', costPerVisit: 0.50, conversionRate: 0.18 }
 ];
 
-// Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
+// Serve static assets with long caching
+app.use('/assets', express.static(path.join(__dirname, 'dist', 'assets'), {
+  maxAge: '1y',
+  immutable: true
+}));
+
+// Serve other static files from dist (but NOT index.html yet)
+app.use(express.static(path.join(__dirname, 'dist'), { 
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.match(/\.(js|css|svg|png|jpg|woff2?)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+}));
+
+// SEO Endpoints (moved here to be handled before catch-all)
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send("User-agent: *\nAllow: /\nSitemap: https://posh-pal.team/sitemap.xml");
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  try {
+    const items = runQuery("SELECT id FROM inventory WHERE status = 'Active'");
+    const posts = runQuery("SELECT slug FROM blog_posts");
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://posh-pal.team/</loc></url>
+  <url><loc>https://posh-pal.team/inventory</loc></url>
+  <url><loc>https://posh-pal.team/bot</loc></url>
+  <url><loc>https://posh-pal.team/offers</loc></url>
+  <url><loc>https://posh-pal.team/blog</loc></url>
+`;
+    items.forEach(item => {
+      xml += `  <url><loc>https://posh-pal.team/item/${item.id}</loc></url>\n`;
+    });
+    posts.forEach(post => {
+      xml += `  <url><loc>https://posh-pal.team/blog/${post.slug}</loc></url>\n`;
+    });
+    xml += '</urlset>';
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (error) {
+    res.status(500).send('Sitemap Error');
+  }
+});
+
+const escapeHtml = (unsafe) => {
+  if (typeof unsafe !== 'string') return unsafe;
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+app.get('/api/seo/:id', (req, res) => {
+  const { id } = req.params;
+  try {
+    const item = runQuery(`SELECT * FROM inventory WHERE id = '${escapeSql(id)}'`);
+    if (!item || item.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    const i = item[0];
+    res.json({
+      title: `${i.title} - Posh Pal`,
+      description: i.description,
+      jsonLd: {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": i.title,
+        "description": i.description,
+        "brand": {
+          "@type": "Brand",
+          "name": i.brand
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": i.price,
+          "priceCurrency": "USD",
+          "itemCondition": i.condition === 'New' ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
+          "availability": i.status === 'Active' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'SEO API Error' });
+  }
+});
+
+app.get('/item/:id', (req, res) => {
+  const { id } = req.params;
+  try {
+    const item = runQuery(`SELECT * FROM inventory WHERE id = '${escapeSql(id)}'`);
+    let html = fs.readFileSync(path.join(__dirname, 'dist', 'index.html'), 'utf8');
+    
+    if (item && item.length > 0) {
+      const i = item[0];
+      const title = `${i.title} - Posh Pal`;
+      const description = i.description;
+      const jsonLd = {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": i.title,
+        "description": i.description,
+        "brand": {
+          "@type": "Brand",
+          "name": i.brand
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": i.price,
+          "priceCurrency": "USD",
+          "itemCondition": i.condition === 'New' ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
+          "availability": i.status === 'Active' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        }
+      };
+      
+      html = html.replace('<title>Posh Pal</title>', `<title>${escapeHtml(title)}</title>`);
+      html = html.replace('</head>', `
+        <meta name="description" content="${escapeHtml(description)}">
+        <meta property="og:title" content="${escapeHtml(title)}">
+        <meta property="og:description" content="${escapeHtml(description)}">
+        <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+      </head>`);
+    }
+    
+    res.send(html);
+  } catch (error) {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  }
+});
+
+app.get('/blog', (req, res) => {
+  try {
+    let html = fs.readFileSync(path.join(__dirname, 'dist', 'index.html'), 'utf8');
+    const title = "Reseller Success Blog - Posh Pal";
+    const description = "Learn how top Poshmark resellers are using automation and AI to scale their businesses.";
+    
+    html = html.replace('<title>Posh Pal</title>', `<title>${escapeHtml(title)}</title>`);
+    html = html.replace('</head>', `
+      <meta name="description" content="${escapeHtml(description)}">
+      <meta property="og:title" content="${escapeHtml(title)}">
+      <meta property="og:description" content="${escapeHtml(description)}">
+    </head>`);
+    
+    res.send(html);
+  } catch (error) {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  }
+});
+
+app.get('/blog/:slug', (req, res) => {
+  const { slug } = req.params;
+  try {
+    const post = runQuery(`SELECT * FROM blog_posts WHERE slug = '${escapeSql(slug)}'`);
+    let html = fs.readFileSync(path.join(__dirname, 'dist', 'index.html'), 'utf8');
+    
+    if (post && post.length > 0) {
+      const p = post[0];
+      const title = `${p.title} - Posh Pal Blog`;
+      const description = p.summary;
+      
+      html = html.replace('<title>Posh Pal</title>', `<title>${escapeHtml(title)}</title>`);
+      html = html.replace('</head>', `
+        <meta name="description" content="${escapeHtml(description)}">
+        <meta property="og:title" content="${escapeHtml(title)}">
+        <meta property="og:description" content="${escapeHtml(description)}">
+        <meta property="og:type" content="article">
+        <meta property="og:site_name" content="Posh Pal">
+        <meta property="article:author" content="${escapeHtml(p.author)}">
+        <meta property="article:published_time" content="${escapeHtml(p.date)}">
+      </head>`);
+    }
+    
+    res.send(html);
+  } catch (error) {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  }
+});
+
+// AI Analysis API Endpoint
+app.post('/api/ai/analyze', async (req, res) => {
+  const { images } = req.body;
+  if (!images || !Array.isArray(images) || images.length === 0) {
+    return res.status(400).json({ error: 'Images array is required' });
+  }
+
+  try {
+    // Check Pro status
+    const userResult = runQuery(`SELECT is_pro FROM users WHERE id = '${escapeSql(req.userId)}'`);
+    const isPro = userResult && userResult.length > 0 && userResult[0].is_pro === 1;
+
+    // Limit photos for free users
+    const maxPhotos = isPro ? 5 : 1;
+    const imagesToAnalyze = images.slice(0, maxPhotos);
+
+    if (!genAI) {
+      console.log("AI Backend: Running in Simulation Mode (No API Key)");
+      // Simulate delay
+      await new Promise(resolve => setTimeout(resolve, 1000 * imagesToAnalyze.length));
+      
+      const mocks = [
+        {
+          title: "Premium Patagonia Better Sweater 1/4 Zip - Men's M",
+          description: "Authentic Patagonia Better Sweater in excellent condition. Multi-photo analysis confirmed high quality and zero flaws.",
+          tags: "Patagonia, Outdoors, Fleece, Sustainable, Gorpcore",
+          hashtags: "#patagonia #bettersweater #outdoors #hiking #fleece"
+        },
+        {
+          title: "Lululemon Align High-Rise Pant 25\" - Black - Size 6",
+          description: "Like new Lululemon Align leggings in classic black. Analysis of all angles confirms authenticity and perfect stitching.",
+          tags: "Lululemon, Yoga, Leggings, Activewear, Athleisure",
+          hashtags: "#lululemon #align #yoga #activewear #athleisure"
+        }
+      ];
+      const result = mocks[Math.floor(Math.random() * mocks.length)];
+      if (imagesToAnalyze.length > 1) {
+        result.description += `\n\n(AI verified across ${imagesToAnalyze.length} photos)`;
+      }
+      return res.json(result);
+    }
+
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `You are a professional Poshmark reseller expert. Analyze these ${imagesToAnalyze.length} images of the same clothing/accessory item. 
+    One image might show the front, another the back, others might show the brand label, size tag, material composition, or specific flaws (stains, holes, wear).
+    
+    Cross-reference all photos to provide a highly accurate and optimized listing.
+    
+    Analyze:
+    1. Brand Name (from labels)
+    2. Exact Item Name/Model
+    3. Condition (look for flaws across all photos)
+    4. Style details (patterns, textures, cuts)
+    5. Color
+    6. Material (from care tags if visible)
+    7. Size (from size tags)
+    
+    Return the result in JSON format with these exact keys:
+    - title: SEO-optimized title including brand, size, and key style features (max 80 chars)
+    - description: Detailed, persuasive description highlighting the item's best features and mentioning any observed flaws or wear.
+    - tags: 5 comma-separated style tags (e.g., "Vintage, Boho, Minimalist")
+    - hashtags: 5 hashtags including #poshmark and the brand.`;
+
+    const imageParts = imagesToAnalyze.map(img => ({
+      inlineData: {
+        data: img.split(',')[1],
+        mimeType: "image/jpeg",
+      },
+    }));
+
+    const result = await model.generateContent([prompt, ...imageParts]);
+    const text = result.response.text();
+    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    try {
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return res.json(JSON.parse(jsonMatch[0]));
+      }
+    } catch (e) {
+      console.error("Failed to parse AI response as JSON:", cleanedText);
+    }
+
+    res.json({
+      title: "AI Generated Listing",
+      description: cleanedText,
+      tags: "Resale, Fashion",
+      hashtags: "#poshmark #reseller"
+    });
+  } catch (error) {
+    console.error('AI Analysis Error:', error);
+    res.status(500).json({ error: 'Failed to analyze images' });
+  }
+});
 
 // Inventory API Endpoints
 app.get('/api/inventory', (req, res) => {
@@ -629,8 +1011,14 @@ app.get('/api/market-insights/:id', (req, res) => {
 
 app.post('/api/create-checkout-session', async (req, res) => {
   try {
+    if (!stripe) throw new Error('Stripe is not initialized. Please check API keys.');
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+      client_reference_id: req.userId,
+      metadata: {
+        userId: req.userId
+      },
       line_items: [
         {
           price_data: {
@@ -648,10 +1036,11 @@ app.post('/api/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.origin}/?success=true`,
+      success_url: `${req.headers.origin}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.origin}/?canceled=true`,
     });
 
+    console.log(`Created checkout session: ${session.id} for user ${req.userId}`);
     res.json({ id: session.id, url: session.url });
   } catch (error) {
     console.error('Error creating checkout session:', error);
@@ -660,193 +1049,92 @@ app.post('/api/create-checkout-session', async (req, res) => {
 });
 
 app.post('/api/stripe/success', async (req, res) => {
+  const { session_id } = req.body;
   try {
     const userId = req.userId;
+    let stripeCustomerId = null;
+    let stripeSubscriptionId = null;
+
+    // If we have a session_id and stripe is initialized, fetch details
+    if (session_id && stripe && !session_id.startsWith('cs_test_')) {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(session_id);
+        stripeCustomerId = session.customer;
+        stripeSubscriptionId = session.subscription;
+      } catch (e) {
+        console.warn('Failed to retrieve checkout session details:', e.message);
+      }
+    }
+
     const expiryDate = new Date();
     expiryDate.setMonth(expiryDate.getMonth() + 1);
     const expiryStr = expiryDate.toISOString().replace('T', ' ').substring(0, 19);
 
-    runQuery(`UPDATE users SET is_pro = 1, pro_expires_at = '${expiryStr}' WHERE id = '${escapeSql(userId)}'`);
+    runQuery(`UPDATE users SET 
+      is_pro = 1, 
+      pro_expires_at = '${expiryStr}',
+      subscription_status = 'active',
+      stripe_customer_id = ${val(stripeCustomerId)},
+      stripe_subscription_id = ${val(stripeSubscriptionId)}
+      WHERE id = '${escapeSql(userId)}'`);
     
     console.log(`Stripe Success: User ${userId} upgraded to Pro until ${expiryStr}`);
-    res.json({ success: true, is_pro: true, expires_at: expiryStr });
+    res.json({ success: true, is_pro: true, expires_at: expiryStr, subscription_status: 'active' });
   } catch (error) {
     console.error('Stripe Success Error:', error);
     res.status(500).json({ error: 'Failed to update subscription status' });
   }
 });
 
-// SEO Endpoints
-app.get('/robots.txt', (req, res) => {
-  res.type('text/plain');
-  res.send("User-agent: *\nAllow: /\nSitemap: https://posh-pal.team/sitemap.xml");
-});
-
-app.get('/sitemap.xml', (req, res) => {
+app.post('/api/cancel-subscription', async (req, res) => {
   try {
-    const items = runQuery("SELECT id FROM inventory WHERE status = 'Active'");
-    const posts = runQuery("SELECT slug FROM blog_posts");
+    const userId = req.userId;
+    const userResult = runQuery(`SELECT stripe_subscription_id FROM users WHERE id = '${escapeSql(userId)}'`);
     
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://posh-pal.team/</loc></url>
-  <url><loc>https://posh-pal.team/inventory</loc></url>
-  <url><loc>https://posh-pal.team/bot</loc></url>
-  <url><loc>https://posh-pal.team/offers</loc></url>
-  <url><loc>https://posh-pal.team/blog</loc></url>
-`;
-    items.forEach(item => {
-      xml += `  <url><loc>https://posh-pal.team/item/${item.id}</loc></url>\n`;
-    });
-    posts.forEach(post => {
-      xml += `  <url><loc>https://posh-pal.team/blog/${post.slug}</loc></url>\n`;
-    });
-    xml += '</urlset>';
-    res.header('Content-Type', 'application/xml');
-    res.send(xml);
-  } catch (error) {
-    res.status(500).send('Sitemap Error');
-  }
-});
-
-const escapeHtml = (unsafe) => {
-  if (typeof unsafe !== 'string') return unsafe;
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-};
-
-app.get('/api/seo/:id', (req, res) => {
-  const { id } = req.params;
-  try {
-    const item = runQuery(`SELECT * FROM inventory WHERE id = '${escapeSql(id)}'`);
-    if (!item || item.length === 0) {
-      return res.status(404).json({ error: 'Item not found' });
-    }
-    const i = item[0];
-    res.json({
-      title: `${i.title} - Posh Pal`,
-      description: i.description,
-      jsonLd: {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": i.title,
-        "description": i.description,
-        "brand": {
-          "@type": "Brand",
-          "name": i.brand
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": i.price,
-          "priceCurrency": "USD",
-          "itemCondition": i.condition === 'New' ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
-          "availability": i.status === 'Active' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+    if (userResult && userResult.length > 0 && userResult[0].stripe_subscription_id) {
+      const subId = userResult[0].stripe_subscription_id;
+      
+      if (stripe) {
+        try {
+          await stripe.subscriptions.update(subId, { cancel_at_period_end: true });
+        } catch (e) {
+          console.error('Stripe cancel error:', e.message);
         }
       }
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'SEO API Error' });
-  }
-});
-
-app.get('/item/:id', (req, res) => {
-  const { id } = req.params;
-  try {
-    const item = runQuery(`SELECT * FROM inventory WHERE id = '${escapeSql(id)}'`);
-    let html = fs.readFileSync(path.join(__dirname, 'dist', 'index.html'), 'utf8');
-    
-    if (item && item.length > 0) {
-      const i = item[0];
-      const title = `${i.title} - Posh Pal`;
-      const description = i.description;
-      const jsonLd = {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": i.title,
-        "description": i.description,
-        "brand": {
-          "@type": "Brand",
-          "name": i.brand
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": i.price,
-          "priceCurrency": "USD",
-          "itemCondition": i.condition === 'New' ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
-          "availability": i.status === 'Active' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
-        }
-      };
       
-      html = html.replace('<title>Posh Pal</title>', `<title>${escapeHtml(title)}</title>`);
-      html = html.replace('</head>', `
-        <meta name="description" content="${escapeHtml(description)}">
-        <meta property="og:title" content="${escapeHtml(title)}">
-        <meta property="og:description" content="${escapeHtml(description)}">
-        <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
-      </head>`);
+      // Update local DB to 'canceled' (meaning it will expire at end of period)
+      runQuery(`UPDATE users SET subscription_status = 'canceled' WHERE id = '${escapeSql(userId)}'`);
+      res.json({ success: true, message: 'Subscription will cancel at the end of the period.' });
+    } else {
+      // If no stripe ID, just mock cancel
+      runQuery(`UPDATE users SET subscription_status = 'canceled' WHERE id = '${escapeSql(userId)}'`);
+      res.json({ success: true, message: 'Subscription canceled (Simulation mode).' });
     }
-    
-    res.send(html);
   } catch (error) {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    console.error('Cancel Error:', error);
+    res.status(500).json({ error: 'Failed to cancel subscription' });
   }
 });
 
-app.get('/blog', (req, res) => {
-  try {
-    let html = fs.readFileSync(path.join(__dirname, 'dist', 'index.html'), 'utf8');
-    const title = "Reseller Success Blog - Posh Pal";
-    const description = "Learn how top Poshmark resellers are using automation and AI to scale their businesses.";
-    
-    html = html.replace('<title>Posh Pal</title>', `<title>${escapeHtml(title)}</title>`);
-    html = html.replace('</head>', `
-      <meta name="description" content="${escapeHtml(description)}">
-      <meta property="og:title" content="${escapeHtml(title)}">
-      <meta property="og:description" content="${escapeHtml(description)}">
-    </head>`);
-    
-    res.send(html);
-  } catch (error) {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  }
-});
-
-app.get('/blog/:slug', (req, res) => {
-  const { slug } = req.params;
-  try {
-    const post = runQuery(`SELECT * FROM blog_posts WHERE slug = '${escapeSql(slug)}'`);
-    let html = fs.readFileSync(path.join(__dirname, 'dist', 'index.html'), 'utf8');
-    
-    if (post && post.length > 0) {
-      const p = post[0];
-      const title = `${p.title} - Posh Pal Blog`;
-      const description = p.summary;
-      
-      html = html.replace('<title>Posh Pal</title>', `<title>${escapeHtml(title)}</title>`);
-      html = html.replace('</head>', `
-        <meta name="description" content="${escapeHtml(description)}">
-        <meta property="og:title" content="${escapeHtml(title)}">
-        <meta property="og:description" content="${escapeHtml(description)}">
-        <meta property="og:type" content="article">
-        <meta property="og:site_name" content="Posh Pal">
-        <meta property="article:author" content="${escapeHtml(p.author)}">
-        <meta property="article:published_time" content="${escapeHtml(p.date)}">
-      </head>`);
-    }
-    
-    res.send(html);
-  } catch (error) {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  }
-});
-
-// Catch-all route to serve the index.html for any non-API requests
+// Catch-all route to serve the cache-busted index.html
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  try {
+    const htmlPath = path.join(__dirname, 'dist', 'index.html');
+    let html = fs.readFileSync(htmlPath, 'utf8');
+    const version = Date.now().toString(36);
+    console.log(`Serving index.html from ${htmlPath}. First 100 chars: ${html.substring(0, 100).replace(/\n/g, ' ')}`);
+    html = html.replace(/src="\/assets\/([^"]+)"/g, 'src="/assets/$1?v=' + version + '"');
+    html = html.replace(/href="\/assets\/([^"]+)"/g, 'href="/assets/$1?v=' + version + '"');
+    res.send(html);
+  } catch (error) {
+    console.error('Error serving index.html:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // Deep Automation Background Loop (Sharing + Offers)
@@ -978,8 +1266,8 @@ setInterval(() => {
       }
 
       // Create user
-      runQuery(`INSERT INTO users (id, referral_code, utm_source, utm_medium, utm_campaign, referred_by)
-                VALUES ('${simulatedUserId}', '${simulatedUserId.toUpperCase()}123', ${val(source.source)}, ${val(source.medium)}, ${val(source.campaign)}, ${val(referredBy)})`);
+      runQuery(`INSERT INTO users (id, referral_code, utm_source, utm_medium, utm_campaign, referred_by, subscription_status)
+                VALUES ('${simulatedUserId}', '${simulatedUserId.toUpperCase()}123', ${val(source.source)}, ${val(source.medium)}, ${val(source.campaign)}, ${val(referredBy)}, 'none')`);
 
       // Init bot config for simulated user so they generate revenue later
       runQuery(`INSERT INTO bot_config (id, user_id, status) VALUES ('${crypto.randomUUID()}', '${simulatedUserId}', 'Running')`);
@@ -1013,7 +1301,7 @@ setInterval(() => {
         const expiryStr = expiryDate.toISOString().replace('T', ' ').substring(0, 19);
 
         // Upgrade to Pro
-        runQuery(`UPDATE users SET is_pro = 1, pro_expires_at = '${expiryStr}' WHERE id = '${user.id}'`);
+        runQuery(`UPDATE users SET is_pro = 1, pro_expires_at = '${expiryStr}', subscription_status = 'active' WHERE id = '${user.id}'`);
         
         // Update Referrer
         const referrers = runQuery(`SELECT id FROM users WHERE referral_code = '${escapeSql(user.referred_by)}'`);

@@ -1,0 +1,20 @@
+# Posh Pal API — Caddy reverse proxy (deploy/Caddyfile)
+# Stable public HTTPS in front of the Express API on __PORT__.
+# Installer run as:  sed "s/__DOMAIN__/$DOMAIN/g; s/__PORT__/$API_PORT/g" > /etc/caddy/Caddyfile
+
+__DOMAIN__ {
+    # Terminate TLS automatically (Let's Encrypt) and proxy all traffic to the API.
+    # Caddy buffers nothing, so the raw Stripe webhook body is passed through
+    # byte-for-byte, preserving the signature for constructEvent on the API side.
+    reverse_proxy 127.0.0.1:__PORT__ {
+        # Forward the original Host/proto so Express sees the external URL
+        header_up Host {host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-For {remote_host}
+    }
+
+    # Health/readiness for quick checks
+    handle /healthz {
+        respond "ok"
+    }
+}
