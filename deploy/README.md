@@ -50,9 +50,18 @@ Internet → api.poshpal.com (Caddy :443, auto Let's Encrypt TLS)
 | File | Purpose |
 |---|---|
 | `provision-vps.sh` | Installs Node/bun/Caddy, app user, copies code, creates env/systemd/Caddy config. |
-| `install-team-db.sh` | Copies the `team-db` CLI from the dev box onto the VPS. |
+| `install-team-db.sh` | Installs the `team-db` CLI on the VPS (after it's carried over via `scp -r`). |
 | `Caddyfile` | Reverse proxy (TLS + raw-body passthrough for webhook signature). |
 | `posh-pal-api.service` | systemd unit (auto-restart, env from `/etc/posh-pal/env`). |
+| `DEPLOY-RUNBOOK.md` | **Execution-ready** checklist: team-db feasibility verdict, data/persistence, exact env values, cut-over steps, owner-blocking inputs. Start here. |
+
+## team-db feasibility (the crux)
+**`team-db` runs on any Linux x86_64 host → Path C avoids the data refactor.** It is a Bun
+TypeScript CLI (`/opt/team-skills/team-db/cli.ts`) using `@tursodatabase/sync` (bundled
+native `sync-linux-x64-gnu` binary) that syncs the shared Turso DB to a local file. Reach the
+DB from anywhere via `TEAM_DB_URL` + `TEAM_DB_AUTH_TOKEN`; `TEAM_DB_EVENTS_URL/TOKEN` are
+optional. The VPS becomes another replica of the **same** DB, so no migration — the only
+pitfall is keeping `TEAM_DB_PATH` on persistent storage. Full analysis in `DEPLOY-RUNBOOK.md` §1.
 
 ## Code change (this PR)
 - `server.js`: `TEAM_DB_PATH` is now `process.env.TEAM_DB_BIN_PATH || '/home/agent-engineer/.local/bin/team-db'`
