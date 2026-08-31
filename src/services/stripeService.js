@@ -13,7 +13,7 @@ const getStripe = () => {
 
 export const createCheckoutSession = async () => {
   try {
-    const response = await fetch(`${API_URL}/create-checkout-session`, {
+    const response = await fetch(`${API_URL}/api/create-checkout-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

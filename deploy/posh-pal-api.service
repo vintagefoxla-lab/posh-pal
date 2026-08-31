@@ -1,0 +1,37 @@
+# Posh Pal API — systemd unit (deploy/posh-pal-api.service)
+# Runs server.js as a background service supervised by systemd (auto-restart on crash/boot).
+# Install: cp deploy/posh-pal-api.service /etc/systemd/system/posh-pal-api.service
+# Env/secrets come from an EnvironmentFile (NOT committed):  /etc/posh-pal/env
+
+[Unit]
+Description=Posh Pal Express API (server.js + Stripe)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Run as a non-root service user
+User=poshpal
+Group=poshpal
+WorkingDirectory=/opt/posh-pal
+# Secrets + runtime config (TEAM_DB_BIN_PATH, TEAM_DB_URL, TEAM_DB_AUTH_TOKEN,
+# TEAM_DB_PATH, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, VITE_STRIPE_PUBLIC_KEY)
+EnvironmentFile=/etc/posh-pal/env
+# API listens on 3001 on loopback; Caddy fronts it on :443
+Environment=PORT=3001
+ExecStart=/usr/bin/node server.js
+
+# Persistence: the team-db SQLite replica + app data live on a real disk.
+# Ensure TEAM_DB_PATH points under here and the dir is owned by poshpal.
+ReadWritePaths=/var/lib/posh-pal
+
+Restart=always
+RestartSec=3
+# Wait up to 30s for a healthy start before counting as failed
+TimeoutStartSec=30
+# Hardening (optional, kept light so Caddy→localhost socket proxying works)
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

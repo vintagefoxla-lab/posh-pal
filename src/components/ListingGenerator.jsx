@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Camera, Copy, Check, Loader2, AlertCircle, Sparkles, ArrowLeft, Zap, Trophy, Package, CheckCircle2 } from 'lucide-react'
 import { generateListingFromImage } from '../services/aiService'
 
-const ListingGenerator = ({ onBack, isPro }) => {
+const ListingGenerator = ({ onBack, isPro, userFetch }) => {
   const [image, setImage] = useState(null)
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState(null)
@@ -75,7 +75,7 @@ const ListingGenerator = ({ onBack, isPro }) => {
     setSaving(true)
     setError(null)
     try {
-      const response = await fetch('/api/inventory', {
+      const response = await userFetch('/api/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
