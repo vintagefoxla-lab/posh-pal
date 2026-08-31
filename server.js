@@ -1036,8 +1036,12 @@ app.post('/api/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.origin}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/?canceled=true`,
+      // Redirect the buyer back to the caller's Origin after checkout. Fall back
+      // to a safe, env-overridable default when the Origin header is absent
+      // (curl/Postman/bots or a future stable host) so this endpoint never 500s.
+      // Existing browsers always send Origin, so their behavior is unchanged.
+      success_url: `${req.headers.origin || process.env.POSH_PAL_APP_ORIGIN || 'http://localhost:3000'}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin || process.env.POSH_PAL_APP_ORIGIN || 'http://localhost:3000'}/?canceled=true`,
     });
 
     console.log(`Created checkout session: ${session.id} for user ${req.userId}`);
