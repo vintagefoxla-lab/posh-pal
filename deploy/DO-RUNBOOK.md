@@ -156,6 +156,25 @@ THRU_CADDY_ROOT: 200      (curl http://159.89.80.50/)
 - Caddy config validated (`caddy validate` = Valid configuration) and reloaded;
   the interim config is a simple `reverse_proxy 127.0.0.1:3001` on the public IP (plain HTTP, pre-DNS)
 
+### Rebuild + final verified state (2026-08-31, revision pass)
+
+After placing `/etc/posh-pal/env`:
+- `dist/` was rebuilt from the current working tree (`bun run build`, vite build OK)
+  and deployed to the droplet (`/opt/posh-pal/dist`, owned by poshpal).
+- Service restarted; **no restart-loop**:
+
+```
+SVC=active  NRestarts=0
+LOCAL3001:          200   (curl http://127.0.0.1:3001/)
+THRU_CADDY_ROOT:    200   (curl http://159.89.80.50/)
+THRU_CADDY_HEALTHZ: 200   (curl http://159.89.80.50/healthz)
+```
+
+- `/etc/posh-pal/env` confirmed present (mode 600, root:root, all 9 keys).
+- Root cause of the earlier restart-loop was the missing env file
+  (`Failed to load environment files`); resolved by `mkdir -p /etc/posh-pal`
+  before scp-ing the env file.
+
 ## 8. STOP before cutover
 
 Do NOT proceed to: posh-pal.com DNS cutover, Stripe webhook repointing to this
