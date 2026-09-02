@@ -52,22 +52,21 @@ const Blog = ({ onBack, onPostClick, userFetch }) => {
       </div>
 
       {/* Featured Story (Marketing Asset) */}
-      {posts.find(p => p.is_verified === 1) && (
-        <div 
-          className="mb-8 card overflow-hidden cursor-pointer hover:ring-2 hover:ring-brand-500 transition-all shadow-xl"
-          onClick={() => onPostClick(posts.find(p => p.is_verified === 1).slug)}
-        >
-          <FeaturedSuccessStoryHeader 
-            name="Hustle at Home Mom"
-            growth="+$3,200/mo"
-            growthPercent="+150%"
-            niche="Family & Kids Resale"
-            avatarInitial="H"
-            beforeRevenue="$2,100/mo"
-            afterRevenue="$5,300/mo"
-          />
-        </div>
-      )}
+      {posts.find(p => p.is_verified === 1) && (() => {
+        const featured = posts.find(p => p.is_verified === 1)
+        return (
+          <div 
+            className="mb-8 card overflow-hidden cursor-pointer hover:ring-2 hover:ring-brand-500 transition-all shadow-xl"
+            onClick={() => onPostClick(featured.slug)}
+          >
+            <FeaturedSuccessStoryHeader 
+              name={featured.author === 'Team Posh Pal' ? 'Posh Pal Reseller' : featured.author}
+              niche="Poshmark Reselling"
+              avatarInitial="P"
+            />
+          </div>
+        )
+      })()}
 
       <div className="grid grid-cols-1 gap-4">
         {posts.map((post) => (
@@ -208,7 +207,7 @@ const BlogPost = ({ slug, onBack, userFetch }) => {
 
         <div className="mt-10 pt-8 border-t border-slate-100 text-center">
           <p className="text-sm font-bold text-slate-900 mb-4">Ready to write your own success story?</p>
-          <button className="btn-primary inline-flex">Start Your Free Trial</button>
+          <button className="btn-primary inline-flex">Start with Posh Pal Pro</button>
         </div>
       </div>
     </div>

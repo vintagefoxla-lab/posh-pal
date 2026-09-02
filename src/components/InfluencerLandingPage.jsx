@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import InfluencerROI from './InfluencerROI'
 import { useABTest } from '../services/abService'
 import { SocialProofGrid } from '../assets/marketing'
@@ -21,7 +21,6 @@ import {
   Quote,
   Rocket,
   Loader2,
-  X,
   Bell,
   ChevronDown,
   ArrowRightLeft,
@@ -41,21 +40,20 @@ import {
  * 
  * Phase 7+: Maximum-conversion landing page for influencer referral campaigns.
  * 
- * CRO Strategy (Social Proof · Urgency · Objection Handling):
- *  - Hero urgency badge + time-saved counter
+ * CRO Strategy (Value Communication · Objection Handling):
+ *  - Hero value props + flat-price messaging
  *  - "Why Resellers Choose Posh Pal" value-prop section  
- *  - Risk-Free Guarantee panel
- *  - Urgency banner between sections
- *  - Enhanced Final CTA with scarcity language
- *  - Before/After visual comparison
- *  - Live Activity social proof toasts
+ *  - Pro Value panel
+ *  - Feature highlight banners
+ *  - Before/After feature comparison
+ *  - Live Activity social proof toasts (removed for compliance — no fabricated activity)
  *  - FAQ with objection-focused questions
- *  - Sticky mobile CTA with pulse animation
+ *  - Sticky mobile CTA
  * 
  * Route: /ref/:code
  * 
  * Usage:
- *   <InfluencerLandingPage code="SARAH20" onBack={handleBack} userFetch={userFetch} />
+ *   <InfluencerLandingPage code="DEMOCODE" onBack={handleBack} userFetch={userFetch} />
  */
 
 const PRO_FEATURES = [
@@ -104,36 +102,9 @@ const PRO_FEATURES = [
 ]
 
 const HOW_IT_WORKS = [
-  { num: '01', title: 'Create Account', desc: 'Sign up free in under 60 seconds — no credit card needed' },
+  { num: '01', title: 'Create Account', desc: 'Sign up in under 60 seconds' },
   { num: '02', title: 'Import Your Closet', desc: 'Connect your Poshmark closet or upload items manually' },
-  { num: '03', title: 'Let AI Do the Work', desc: 'Auto-generate listings, share 24/7, and watch sales grow' }
-]
-
-const TESTIMONIALS = [
-  {
-    name: 'Sarah M.',
-    handle: '@sarahscloset',
-    text: 'Posh Pal doubled my listing output. I went from 5 items/week to 15! The AI listing generator is a total game changer.',
-    items: '342',
-    revenue: '+$4,200',
-    verified: true
-  },
-  {
-    name: 'James K.',
-    handle: '@jamesvintage',
-    text: 'The auto-sharing bot alone is worth the subscription. My engagement is up 3x and I\'m actually making sales while I sleep.',
-    items: '189',
-    revenue: '+$2,800',
-    verified: true
-  },
-  {
-    name: 'Lisa R.',
-    handle: '@lilysthrifts',
-    text: 'Cross-listing used to take me hours. Now I export to 4 platforms in one click. Best $15 I spend every month.',
-    items: '521',
-    revenue: '+$6,100',
-    verified: true
-  }
+  { num: '03', title: 'Let AI Do the Work', desc: 'Auto-generate listings, share 24/7, and grow sales' }
 ]
 
 const BEFORE_AFTER = [
@@ -166,55 +137,32 @@ const BEFORE_AFTER = [
   },
   {
     icon: DollarSign,
-    metric: 'Monthly Revenue',
-    before: '$800 avg',
-    after: '$2,400+ avg',
-    improvement: '3x growth',
+    metric: 'Monthly Cost',
+    before: 'Outsourced VA',
+    after: 'Posh Pal Pro',
+    improvement: '$15/mo',
     beforeIcon: TrendingUp,
     afterIcon: Rocket
   }
 ]
 
-const SUCCESS_STORIES = [
-  {
-    slug: 'sarah-success-story',
-    name: 'Sarah M.',
-    growth: '+$2,000/mo',
-    niche: 'Vintage & Designer',
-    imageInitial: 'S'
-  },
-  {
-    slug: 'mike-success-story',
-    name: 'Mike T.',
-    growth: '+$3,500/mo',
-    niche: 'Streetwear & Sneakers',
-    imageInitial: 'M'
-  },
-  {
-    slug: 'mogibeth-success-story',
-    name: 'Mogibeth',
-    growth: '+$1,500/mo',
-    niche: 'Vintage Clothing',
-    imageInitial: 'M'
-  }
-]
-
+const SUCCESS_STORIES = []
 const WHY_POSH_PAL = [
   {
     icon: BarChart3,
     title: 'Sell More, Work Less',
-    desc: 'Our users average 3x more listings per week while spending 10+ fewer hours on manual tasks.',
-    stat: '3x',
-    statLabel: 'more output',
+    desc: 'Automate listings, sharing, and offers so you can focus on sourcing and growth.',
+    stat: '6',
+    statLabel: 'automations',
     color: 'text-emerald-600',
     bg: 'bg-emerald-50'
   },
   {
     icon: Shield,
-    title: '100% Risk-Free Trial',
-    desc: 'No credit card required. Try every Pro feature free for 14 days. Cancel anytime — you won\'t be charged a cent.',
-    stat: '$0',
-    statLabel: 'to start',
+    title: 'Flat $15/mo Pro',
+    desc: 'Every Pro feature for one flat monthly price. Cancel anytime.',
+    stat: '$15',
+    statLabel: 'per month',
     color: 'text-brand-600',
     bg: 'bg-brand-50'
   },
@@ -232,19 +180,19 @@ const WHY_POSH_PAL = [
 const FAQ_ITEMS = [
   {
     q: 'Is Posh Pal safe to use with my Poshmark account?',
-    a: 'Yes! Posh Pal uses Poshmark\'s public API and follows all platform guidelines. We never store your Poshmark password — you connect securely and can disconnect anytime. Thousands of resellers use Posh Pal daily without issues.'
+    a: 'Yes! Posh Pal uses Poshmark\'s public API and follows platform guidelines. We never store your Poshmark password — you connect securely and can disconnect anytime.'
   },
   {
     q: 'Does Posh Pal work with my existing listings?',
-    a: 'Absolutely. When you connect your closet, Posh Pal automatically imports all your active listings. You can start optimizing, sharing, and managing them immediately — no need to recreate anything.'
+    a: 'When you connect your closet, Posh Pal can import your active listings so you can start optimizing, sharing, and managing them — no need to recreate anything.'
   },
   {
-    q: 'What\'s the catch with the free trial?',
-    a: 'No catch. Your 14-day Pro trial gives you full access to every feature — AI listing generator, auto-sharing bot, cross-listing, offer engine, and more. No credit card required. Cancel anytime before the trial ends with zero charges.'
+    q: 'What does the $15/month Pro plan include?',
+    a: 'Pro is a flat $15/month for every feature — AI listing generator, 24/7 auto-sharing, cross-listing to six platforms, offer engine, market insights, and analytics. No contracts: cancel anytime in one click.'
   },
   {
     q: 'How is this only $15/month? Is it really worth it?',
-    a: 'Most resellers save 10–15 hours per week with Posh Pal. At just $15/month, that\'s less than $0.25/hour of time saved. Plus, features like auto-sharing and cross-listing typically increase sales by 2-3x, making the ROI immediate. We keep it affordable because we believe every reseller deserves access to professional tools.'
+    a: 'Posh Pal consolidates listing creation, pricing, sharing, and cross-listing into one $15/month subscription. For a professional reseller, the time saved on manual listing and sharing typically outweighs the cost. We keep it affordable because we believe every reseller deserves access to professional tools.'
   },
   {
     q: 'Can I cross-list to other platforms besides Poshmark?',
@@ -252,7 +200,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What if I don\'t like it? Can I cancel?',
-    a: 'You can cancel anytime with a single click — no phone calls, no emails, no hassle. Your trial is completely free with no credit card required, so there\'s literally zero risk. If you decide to subscribe and later want to cancel, you won\'t be charged again.'
+    a: 'You can cancel anytime with a single click — no phone calls, no emails, no hassle. Your subscription simply ends at the end of the billing period, and you won\'t be charged again.'
   },
   {
     q: 'Do I need to be tech-savvy to use Posh Pal?',
@@ -261,18 +209,8 @@ const FAQ_ITEMS = [
 ]
 
 // ─── Live Activity Data ───────────────────────────────────────────────
-const LIVE_ACTIVITIES = [
-  { name: 'Alex', location: 'New York', action: 'just joined Posh Pal!' },
-  { name: 'Maria', location: 'Los Angeles', action: 'upgraded to Pro!' },
-  { name: 'Jordan', location: 'Chicago', action: 'created 5 new listings with AI' },
-  { name: 'Taylor', location: 'Miami', action: 'just crossed $5K in sales!' },
-  { name: 'Casey', location: 'Austin', action: 'exported 20 listings to 3 platforms' },
-  { name: 'Riley', location: 'Denver', action: 'saved 12 hours this week' },
-  { name: 'Morgan', location: 'Seattle', action: 'auto-shared 500 items today' },
-  { name: 'Sam', location: 'Portland', action: 'just joined Posh Pal!' },
-  { name: 'Jamie', location: 'Nashville', action: 'sent 30 offers to likers' },
-  { name: 'Drew', location: 'Atlanta', action: 'listed 10 items in under 30 min' }
-]
+// Removed: previously contained fabricated "live activity" items (fictional
+// resellers with invented actions). Compliance: no fake social proof.
 
 const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
   const [influencer, setInfluencer] = useState(null)
@@ -285,10 +223,6 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
   
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState(null)
-  
-  // Live activity toast state
-  const [liveActivity, setLiveActivity] = useState(null)
-  const [activityVisible, setActivityVisible] = useState(false)
 
   // Load influencer info from API based on code
   useEffect(() => {
@@ -341,38 +275,6 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
     loadInfluencer()
   }, [code, userFetch])
 
-  // ─── Live Activity Toast Logic ──────────────────────────────────────
-  const showActivity = useCallback(() => {
-    const activity = LIVE_ACTIVITIES[Math.floor(Math.random() * LIVE_ACTIVITIES.length)]
-    setLiveActivity(activity)
-    setActivityVisible(true)
-    
-    // Auto-dismiss after 4 seconds
-    setTimeout(() => {
-      setActivityVisible(false)
-    }, 4000)
-  }, [])
-
-  useEffect(() => {
-    // Show first activity after 5 seconds
-    const initialTimer = setTimeout(() => {
-      showActivity()
-    }, 5000)
-    
-    // Then show random activities every 15-30 seconds
-    const interval = setInterval(() => {
-      const delay = 15000 + Math.random() * 15000 // 15-30 seconds
-      setTimeout(() => {
-        showActivity()
-      }, delay)
-    }, 30000)
-    
-    return () => {
-      clearTimeout(initialTimer)
-      clearInterval(interval)
-    }
-  }, [showActivity])
-
   const copyCode = () => {
     navigator.clipboard.writeText(code)
     setCopied(true)
@@ -396,8 +298,8 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
   }
 
   const getCtaText = () => {
-    if (variant === 'B') return 'Claim Your Discount'
-    return 'Start Free Trial'
+    if (variant === 'B') return 'Start with Posh Pal Pro'
+    return 'Start with Posh Pal'
   }
 
   if (loading) {
@@ -431,14 +333,6 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
           </div>
 
           <div className="relative z-10">
-            {/* ─── Urgency Badge ─────────────────────────────────── */}
-            <div className="inline-flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/30 rounded-full px-4 py-1.5 mb-5">
-              <Flame className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-amber-300 text-[10px] font-black uppercase tracking-widest">
-                Limited Time — Free Pro Trial
-              </span>
-            </div>
-
             {/* Sparkle icon */}
             <div className="bg-brand-500/20 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-5 ring-2 ring-brand-400/30">
               <Sparkles className="w-10 h-10 text-brand-400" />
@@ -449,7 +343,7 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
               You've Been Invited
             </p>
             <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-3 leading-tight">
-              Try Posh Pal Pro <span className="text-brand-400 italic">Free</span> for 14 Days
+              Posh Pal Pro — <span className="text-brand-400 italic">$15/mo</span>, Everything Included
             </h1>
             <p className="text-slate-400 text-base max-w-lg mx-auto mb-3 leading-relaxed">
               "{influencer.bio}"
@@ -459,11 +353,11 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
             <div className="flex items-center justify-center gap-2 mb-6">
               <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
                 <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-xs font-bold text-white">Save 10+ hrs/week</span>
+                <span className="text-xs font-bold text-white">Automate listing & sharing</span>
               </div>
               <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
                 <Users className="w-3.5 h-3.5 text-brand-400" />
-                <span className="text-xs font-bold text-white">Join 10K+ resellers</span>
+                <span className="text-xs font-bold text-white">Join resellers like you</span>
               </div>
             </div>
 
@@ -517,7 +411,7 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
             <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
               <span className="flex items-center gap-1.5 text-slate-500">
                 <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                No credit card required
+                $15/mo flat price
               </span>
               <span className="flex items-center gap-1.5 text-slate-500">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -525,7 +419,7 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
               </span>
               <span className="flex items-center gap-1.5 text-slate-500">
                 <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                4.9★ from 2,000+ reviews
+                New platform — growing community
               </span>
             </div>
           </div>
@@ -534,16 +428,16 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
         {/* Social Proof Stats */}
         <div className="grid grid-cols-3 divide-x divide-slate-100">
           <div className="p-4 md:p-5 text-center">
-            <p className="text-2xl md:text-3xl font-black text-brand-600">10K+</p>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Resellers</p>
+            <p className="text-2xl md:text-3xl font-black text-brand-600">New</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Platform</p>
           </div>
           <div className="p-4 md:p-5 text-center">
-            <p className="text-2xl md:text-3xl font-black text-emerald-600">50K+</p>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Listings Created</p>
+            <p className="text-2xl md:text-3xl font-black text-emerald-600">6</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Platform Exports</p>
           </div>
           <div className="p-4 md:p-5 text-center">
-            <p className="text-2xl md:text-3xl font-black text-amber-600">$2M+</p>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Seller Revenue</p>
+            <p className="text-2xl md:text-3xl font-black text-amber-600">$15/mo</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Flat Pro Price</p>
           </div>
         </div>
       </div>
@@ -574,7 +468,7 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
         </div>
       </div>
 
-      {/* ─── Urgency Banner ────────────────────────────────────────── */}
+      {/* ─── Value Banner ────────────────────────────────────────── */}
       <div className="mb-5">
         <div className="bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-amber-500/10 border border-amber-200/60 rounded-2xl px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2.5">
@@ -583,10 +477,10 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
             </div>
             <div>
               <p className="text-sm font-black text-amber-800">
-                Your free trial is waiting — no credit card needed
+                One flat price — every Pro feature included
               </p>
               <p className="text-[10px] font-medium text-amber-600">
-                Join 10,000+ resellers already growing with Posh Pal
+                New platform — resellers like you are just getting started
               </p>
             </div>
           </div>
@@ -636,7 +530,7 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
         </div>
       </div>
 
-      {/* ─── Risk-Free Guarantee ───────────────────────────────────── */}
+      {/* ─── Pro Value Panel ─────────────────────────────────────── */}
       <div className="card p-6 md:p-8 mb-5 bg-gradient-to-br from-emerald-50/50 to-white">
         <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
           <div className="shrink-0 w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center">
@@ -644,16 +538,16 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
           </div>
           <div className="flex-1">
             <h2 className="text-lg md:text-xl font-black text-slate-900 mb-2">
-              Zero Risk. <span className="text-emerald-600">100% Free to Try.</span>
+              One Flat Price. <span className="text-emerald-600">Every Pro Feature.</span>
             </h2>
             <p className="text-sm text-slate-500 leading-relaxed mb-3">
-              We're so confident you'll love Posh Pal that we don't even ask for a credit card. 
-              Get full access to every Pro feature for 14 days. If it's not for you, simply cancel — 
-              no charges, no hassle, no hard feelings.
+              Posh Pal Pro is $15/month — a single flat price for every feature: AI listing 
+              generator, 24/7 auto-sharing, cross-listing, offer engine, and more. Cancel anytime 
+              in one click; no contracts, no setup fees.
             </p>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-[10px] font-bold">
               <span className="flex items-center gap-1 text-slate-500">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> No credit card
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> $15/month flat
               </span>
               <span className="flex items-center gap-1 text-slate-500">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Cancel in one click
@@ -673,7 +567,7 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
             ) : (
               <>
                 <Shield className="w-4 h-4" />
-                Start My Free Trial
+                Start with Pro
               </>
             )}
           </button>
@@ -799,7 +693,7 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
 
       {/* ─── Testimonials (Marketing Asset) ────────────────────────── */}
       <div className="mb-5">
-        <SocialProofGrid className="card p-6 md:p-8" />
+        {null}
       </div>
 
       {/* ─── Success Stories ────────────────────────────────────────── */}
@@ -901,11 +795,11 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl" />
           </div>
           <div className="relative z-10">
-            {/* Urgency ribbon */}
+            {/* Value ribbon */}
             <div className="inline-flex items-center gap-1.5 bg-white/15 border border-white/20 rounded-full px-3 py-1 mb-4">
-              <Flame className="w-3 h-3 text-amber-300" />
+              <Rocket className="w-3 h-3 text-amber-300" />
               <span className="text-[10px] font-black text-amber-200 uppercase tracking-widest">
-                Don't miss out — free trial available now
+                All features — one flat price
               </span>
             </div>
             <Rocket className="w-10 h-10 text-white mx-auto mb-4" />
@@ -913,19 +807,18 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
               Ready to Supercharge Your Reselling?
             </h2>
             <p className="text-brand-200 text-sm mb-3 max-w-md mx-auto">
-              Join {influencer.name} and 10,000+ resellers growing with Posh Pal — 
-              start your free trial today, cancel anytime.
+              Join {influencer.name} and start with Posh Pal Pro today — cancel anytime.
             </p>
             {/* Key benefit bullets */}
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mb-6 text-xs text-brand-200">
               <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Save 10+ hrs/week
+                <CheckCircle2 className="w-3 h-3" /> Automate listings & sharing
               </span>
               <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Sell on 6 platforms
+                <CheckCircle2 className="w-3 h-3" /> Export to 6 platforms
               </span>
               <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> 3x more sales avg.
+                <CheckCircle2 className="w-3 h-3" /> $15/mo flat Pro price
               </span>
             </div>
             <button
@@ -938,13 +831,13 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
               ) : (
                 <>
                   <Zap className="w-5 h-5 fill-current" />
-                  Claim Your Free Trial
+                  Start with Posh Pal Pro
                 </>
               )}
             </button>
             <div className="flex items-center justify-center gap-4 mt-4 text-xs text-brand-200">
               <span className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5" /> No credit card
+                <Shield className="w-3.5 h-3.5" /> $15/mo flat
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Cancel anytime
@@ -954,54 +847,17 @@ const InfluencerLandingPage = ({ code, onBack, onStoryClick, userFetch }) => {
         </div>
       </div>
 
-      {/* ─── Live Activity Toast ────────────────────────────────────── */}
-      <div 
-        className={`fixed bottom-20 md:bottom-6 right-4 z-50 transition-all duration-500 ease-out ${
-          activityVisible 
-            ? 'translate-y-0 opacity-100' 
-            : 'translate-y-4 opacity-0 pointer-events-none'
-        }`}
-      >
-        {liveActivity && (
-          <div className="flex items-center gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl shadow-slate-900/20 border border-slate-700 max-w-xs">
-            {/* Pulse dot */}
-            <div className="relative shrink-0">
-              <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full" />
-              <div className="absolute inset-0 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping opacity-75" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-white leading-tight">
-                <span className="font-bold">{liveActivity.name}</span>
-                <span className="text-slate-400 font-medium"> from {liveActivity.location} </span>
-                <span className="text-slate-300">{liveActivity.action}</span>
-              </p>
-            </div>
-            <button 
-              onClick={() => setActivityVisible(false)}
-              className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
-            >
-              <X className="w-3.5 h-3.5 text-slate-500" />
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* ─── Sticky Mobile CTA ──────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-slate-200 p-3 shadow-xl shadow-slate-900/5">
         <div className="flex items-center gap-3">
-          {/* Info with pulse dot */}
+          {/* Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <div className="relative shrink-0">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full" />
-                <div className="absolute inset-0 w-2 h-2 bg-emerald-400 rounded-full animate-ping opacity-75" />
-              </div>
-              <p className="text-xs font-black text-slate-900 truncate">
-                Free Trial Active — Claim Now
-              </p>
-            </div>
+            <p className="text-xs font-black text-slate-900 truncate">
+              Use your referral code to start
+            </p>
             <p className="text-[10px] text-slate-400 font-medium truncate ml-3.5">
-              Code: <span className="font-bold text-brand-600">{code}</span> · No credit card
+              Code: <span className="font-bold text-brand-600">{code}</span> · $15/mo Pro
             </p>
           </div>
           {/* CTA Button */}

@@ -73,9 +73,9 @@ const SocialAssetsPreview = () => {
               </div>
               <div className="flex-1 space-y-3">
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Showcases a real reseller's income transformation with a bold "+$2,000/mo" stat. 
-                  Features a side-by-side "Before vs After" comparison (5→25 listings/wk, $800→$2,800/mo).
-                </p>
+                                  Showcases a reseller income-transformation concept with a bold uplift stat (fill in real numbers).
+                                  Features a side-by-side "Before vs After" comparison template (listings/wk, monthly revenue).
+                                </p>
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Usage</p>
                   <ul className="space-y-1.5">
@@ -279,9 +279,9 @@ const SocialAssetsPreview = () => {
               <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100">
                 <p className="text-xs font-black text-indigo-700 uppercase tracking-widest mb-2">Outreach Strategy</p>
                 <p className="text-xs text-indigo-900/70 leading-relaxed">
-                  "Most resellers don't realize they can turn their audience into a recurring revenue stream. 
-                  With a $15 payout per signup and our 12% conversion rate, a single post to 25k followers 
-                  can generate over $1,000/mo."
+                  "Most resellers don't realize they can turn their audience into a recurring revenue stream.
+                                    With a $15 payout per signup, a single post to 25k followers has the potential to
+                                    generate meaningful monthly income."
                 </p>
               </div>
               <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100">
