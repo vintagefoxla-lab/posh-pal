@@ -35,8 +35,8 @@ import { FeaturedSuccessStoryHeader } from '../assets/marketing'
  * 
  * Data shape (extends existing blog_posts table):
  *   meta: {
- *     resellerName,        // "Sarah M."
- *     resellerHandle,      // "@sarahscloset"
+ *     resellerName,        // "Posh Pal Reseller"
+ *     resellerHandle,      // ""
  *     earningsGrowth,      // "+$2,000/mo"
  *     niche,               // "Women's Vintage & Designer"
  *     avatarInitial,       // "S"
@@ -130,97 +130,9 @@ const SuccessStoryTemplate = ({ post, onBack }) => {
     // Simulate loading metadata
     const timer = setTimeout(() => {
       // Example success story data — in production, fetch from API
-      const mockMeta = {
-        'sarah-success-story': {
-          resellerName: 'Sarah M.',
-          resellerHandle: '@sarahscloset',
-          avatarInitial: 'S',
-          earningsGrowth: '+$2,000/mo',
-          niche: "Women's Vintage & Designer Resale",
-          location: 'Austin, TX',
-          timeUsingPoshPal: '3 months',
-          beforeStats: {
-            listingsPerWeek: 5,
-            hoursSpent: 20,
-            monthlyRevenue: 800,
-            shareEngagement: 120
-          },
-          afterStats: {
-            listingsPerWeek: 25,
-            hoursSpent: 8,
-            monthlyRevenue: 2800,
-            shareEngagement: 850
-          },
-          testimonialQuote: "Posh Pal completely changed how I run my business. What used to take me 20 hours a week now takes 8. I'm listing 5x more items and my revenue has more than tripled. The auto-sharing bot alone has been a game-changer — my engagement went from 120 shares/week to 850.",
-          testimonialContext: "Sarah was a part-time reseller struggling to keep up with sharing and listing. After using Posh Pal for 3 months, she automated 24/7 sharing and saw her sales jump by 300%.",
-          appStack: [
-            { id: 'listing-generator', description: 'Creates 20+ listings per session from photos', benefit: '5x faster listing creation' },
-            { id: 'sharing', description: '24/7 automated closet sharing', benefit: '7x increase in share engagement' },
-            { id: 'pricing', description: 'Real-time comps for vintage items', benefit: 'Optimal pricing every time' },
-            { id: 'cross-listing', description: 'One-click export to eBay & Depop', benefit: 'Reach 3x more buyers' },
-          ]
-        },
-        'mike-success-story': {
-          resellerName: 'Mike T.',
-          resellerHandle: '@mikethrifts',
-          avatarInitial: 'M',
-          earningsGrowth: '+$3,500/mo',
-          niche: 'Men\'s Streetwear & Sneakers',
-          location: 'Brooklyn, NY',
-          timeUsingPoshPal: '6 months',
-          beforeStats: {
-            listingsPerWeek: 8,
-            hoursSpent: 30,
-            monthlyRevenue: 1500,
-            shareEngagement: 200
-          },
-          afterStats: {
-            listingsPerWeek: 40,
-            hoursSpent: 12,
-            monthlyRevenue: 5000,
-            shareEngagement: 1200
-          },
-          testimonialQuote: "I went from a side hustle to a full-time career. Posh Pal's AI listing generator helped me scale from 8 items a week to 40. The cross-listing feature opened up eBay and StockX markets for me — that's where the real money is.",
-          testimonialContext: "Mike started reselling sneakers as a weekend side gig. Within 6 months of using Posh Pal, he quit his day job and now runs a thriving full-time reselling business.",
-          appStack: [
-            { id: 'listing-generator', description: 'Bulk AI listing creation for sneakers', benefit: '40 listings/week effortlessly' },
-            { id: 'cross-listing', description: 'Export to eBay, StockX & Grailed', benefit: '3 new revenue streams' },
-            { id: 'market-insights', description: 'Real-time bid/ask data for hype items', benefit: 'Maximize profit on each sale' },
-            { id: 'offers', description: 'Automated offer engine to likers', benefit: 'Convert 30% more watchers' },
-          ]
-          },
-          'mogibeth-success-story': {
-          resellerName: 'Mogibeth',
-          resellerHandle: '@mogibeth',
-          avatarInitial: 'M',
-          earningsGrowth: '+$1,500/mo',
-          niche: 'Vintage Clothing & Thrifting',
-          location: 'San Francisco, CA',
-          timeUsingPoshPal: '4 months',
-          beforeStats: {
-            listingsPerWeek: 10,
-            hoursSpent: 15,
-            monthlyRevenue: 1200,
-            shareEngagement: 150
-          },
-          afterStats: {
-            listingsPerWeek: 35,
-            hoursSpent: 5,
-            monthlyRevenue: 2700,
-            shareEngagement: 600
-          },
-          testimonialQuote: "Posh Pal is my secret weapon. I now list 3x more and work 3x less. The AI listings are so accurate, it's scary!",
-          testimonialContext: "Mogibeth is a social media influencer and reseller who wanted to spend more time on content and less on manual Poshmark tasks.",
-          appStack: [
-            { id: 'listing-generator', description: 'AI-powered listing creation', benefit: 'Saved 10h/week' },
-            { id: 'sharing', description: 'Auto-sharing for constant visibility', benefit: '4x engagement boost' },
-            { id: 'offers', description: 'Automated liker offers', benefit: '20% higher conversion' },
-          ]
-          }
-          }
-
+      const mockMeta = {}
       setMeta(mockMeta[post.slug] || null)
-      setLoading(false)
+            setLoading(false)
     }, 300)
 
     return () => clearTimeout(timer)
@@ -281,7 +193,9 @@ const SuccessStoryTemplate = ({ post, onBack }) => {
           name={meta.resellerName}
           handle={meta.resellerHandle}
           growth={meta.earningsGrowth}
-          growthPercent={'+' + Math.round(((meta.afterStats.monthlyRevenue - meta.beforeStats.monthlyRevenue) / meta.beforeStats.monthlyRevenue) * 100) + '%'}
+          growthPercent={meta.beforeStats.monthlyRevenue > 0
+            ? '+' + Math.round(((meta.afterStats.monthlyRevenue - meta.beforeStats.monthlyRevenue) / meta.beforeStats.monthlyRevenue) * 100) + '%'
+            : '0%'}
           niche={meta.niche}
           avatarInitial={meta.avatarInitial}
           beforeRevenue={`$${meta.beforeStats.monthlyRevenue}/mo`}
@@ -448,22 +362,21 @@ const SuccessStoryTemplate = ({ post, onBack }) => {
               Ready to Write Your Own Success Story?
             </h2>
             <p className="text-brand-200 text-sm mb-6 max-w-md mx-auto leading-relaxed">
-              Join {meta.resellerName} and thousands of resellers using Posh Pal to automate listings, 
-              optimize pricing, and scale their business.
+              {meta.resellerName} uses Posh Pal to automate listings, optimize pricing, and scale their business.
             </p>
             <button className="bg-white text-brand-600 px-10 py-4 rounded-xl font-black text-base hover:bg-brand-50 transition-all shadow-xl flex items-center justify-center gap-2 mx-auto">
               <Zap className="w-5 h-5 fill-current" />
-              Start Your Free Trial
+              Start with Posh Pal Pro
             </button>
             <div className="flex items-center justify-center gap-4 mt-4 text-xs text-brand-200">
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> No credit card needed
+                <CheckCircle2 className="w-3.5 h-3.5" /> $15/mo flat price
               </span>
               <span className="flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5" /> Cancel anytime
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> 14-day free trial
+                <CheckCircle2 className="w-3.5 h-3.5" /> Every feature included
               </span>
             </div>
           </div>

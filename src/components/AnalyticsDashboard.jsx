@@ -104,11 +104,8 @@ const QUICK_FILTERS = [
 ]
 
 const LEADERBOARD_DATA = [
-  { rank: 1, name: 'Sarah M.', handle: '@sarahscloset', code: 'SARAH20', referrals: 12, conversions: 8, revenue: 480, tier: '🔥 Lifetime Free' },
-  { rank: 2, name: 'James K.', handle: '@jamesvintage', code: 'JAMES10', referrals: 7, conversions: 5, revenue: 320, tier: '🏆 50% Discount' },
-  { rank: 3, name: 'Lisa R.', handle: '@lilysthrifts', code: 'LISAREF', referrals: 3, conversions: 2, revenue: 160, tier: '⭐ 1 Month Free' },
-  { rank: 4, name: 'Mike T.', handle: '@mikethrifts', code: 'MIKEYT', referrals: 2, conversions: 1, revenue: 80, tier: '⭐ 1 Month Free' },
-  { rank: 5, name: 'Emma W.', handle: '@emmascloset', code: 'EMMA20', referrals: 1, conversions: 1, revenue: 60, tier: '—' },
+  // No fabricated leaderboard. Real referrers are loaded from /api/analytics/leaderboard.
+  // Until real referrals exist, this stays empty (honest state).
 ]
 
 // ─── Main Component ──────────────────────────────────────────────────
@@ -170,21 +167,16 @@ const AnalyticsDashboardPhase6 = ({ onBack, userFetch, isPro }) => {
           offer_conversion_rate: { current: parseFloat(raw.conversion_rate) || 0, target: 20, unit: '%' },
           total_revenue: { current: parseFloat(raw.total_revenue) || 0, target: 5000.00, unit: '$' },
           listing_velocity: { current: raw.listing_velocity ?? 8, target: 15, unit: '/day' },
-          top_categories: raw.top_categories || [
-            { name: 'Jackets', count: 28, revenue: 820 },
-            { name: 'Sneakers', count: 22, revenue: 1450 },
-            { name: 'Tops', count: 18, revenue: 340 },
-            { name: 'Accessories', count: 12, revenue: 210 },
-          ],
-          weekly_trend: raw.weekly_shares || [320, 410, 380, 490, 560, 620, 580],
+          top_categories: raw.top_categories || [],
+          weekly_trend: raw.weekly_shares || [],
           days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          referral_count: parseInt(raw.referral_count) || 23,
-          referral_conversions: parseInt(raw.referral_conversions) || 14,
-          referral_revenue: parseFloat(raw.referral_revenue) || 1280.00,
-          referral_trend: raw.referral_weekly || [2, 3, 1, 5, 4, 6, 3],
-          referral_growth: parseFloat(raw.referral_growth) || 12,
-          conversion_growth: parseFloat(raw.conversion_growth) || 8,
-          referral_revenue_growth: parseFloat(raw.referral_revenue_growth) || 22,
+          referral_count: parseInt(raw.referral_count) || 0,
+          referral_conversions: parseInt(raw.referral_conversions) || 0,
+          referral_revenue: parseFloat(raw.referral_revenue) || 0,
+          referral_trend: raw.referral_weekly || [],
+          referral_growth: parseFloat(raw.referral_growth) || 0,
+          conversion_growth: parseFloat(raw.conversion_growth) || 0,
+          referral_revenue_growth: parseFloat(raw.referral_revenue_growth) || 0,
           leaderboard: leaderboardData,
         })
       }

@@ -724,9 +724,8 @@ app.get('/api/analytics/attribution', (req, res) => {
     // Group by source + campaign for influencer visibility
     const summary = {};
     stats.forEach(row => {
-      // Use campaign as key for influencers, otherwise source
-      const isInfluencer = ['SARAH20', 'MOGI15', 'FRIZZY20', 'POSHPAL123'].includes(row.utm_campaign);
-      const key = isInfluencer ? row.utm_campaign : `${row.utm_source || 'direct'}`;
+      // Group by campaign when present, otherwise source
+      const key = row.utm_campaign || row.utm_source || 'direct';
       
       if (!summary[key]) {
         summary[key] = { source: key, visits: 0, signups: 0, cost: 0, revenue: 0 };
@@ -745,8 +744,7 @@ app.get('/api/analytics/attribution', (req, res) => {
     `);
 
     revenueBySource.forEach(row => {
-      const isInfluencer = ['SARAH20', 'MOGI15', 'FRIZZY20', 'POSHPAL123'].includes(row.utm_campaign);
-      const key = isInfluencer ? row.utm_campaign : `${row.utm_source || 'direct'}`;
+      const key = row.utm_campaign || row.utm_source || 'direct';
       if (summary[key]) {
         summary[key].revenue += row.total_revenue || 0;
       }
@@ -803,15 +801,15 @@ app.get('/api/analytics/referrals', (req, res) => {
     const totalCount = runQuery(`SELECT SUM(referral_count) as total FROM users`)[0].total || 0;
     const totalConversions = runQuery(`SELECT COUNT(*) as total FROM referral_history`)[0].total || 0;
     
-    // Mocking growth data for simulation
+    // Real values only; growth metrics are 0 until real referral data accumulates
     res.json({
       referral_count: totalCount,
       referral_conversions: totalConversions,
-      referral_revenue: totalConversions * 15.00, // Assuming $15 per conversion
-      referral_growth: 15.4,
-      conversion_growth: 10.2,
-      referral_revenue_growth: 25.0,
-      referral_weekly: [2, 5, 3, 8, 4, 12, 7]
+      referral_revenue: totalConversions * 15.00, // $15 per conversion
+      referral_growth: 0,
+      conversion_growth: 0,
+      referral_revenue_growth: 0,
+      referral_weekly: []
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch referral analytics' });
@@ -831,8 +829,8 @@ app.get('/api/analytics/leaderboard', (req, res) => {
     const leaderboard = topReferrers.map((r, i) => ({
       rank: i + 1,
       ...r,
-      conversions: Math.floor(r.referrals * 0.6),
-      revenue: Math.floor(r.referrals * 0.6) * 15,
+      conversions: 0,
+      revenue: 0,
       tier: r.referrals > 10 ? '🔥 Lifetime Free' : '💎 Pro Member'
     }));
 
@@ -1001,6 +999,7 @@ app.get('/api/market-insights/:id', (req, res) => {
       item_id: id,
       title: item[0].title,
       current_price: item[0].price,
+      simulated: marketData ? false : (isSneaker || isShoe),
       market_data: marketData || { message: 'No specialized market data available for this category' }
     });
   } catch (error) {

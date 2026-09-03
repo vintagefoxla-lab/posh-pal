@@ -7,18 +7,13 @@ const ReferralLanding = ({ onBack }) => {
     { icon: Zap, text: 'AI Listing Generator', desc: 'Turn photos into optimized listings in seconds' },
     { icon: TrendingUp, text: 'Smart Pricing', desc: 'Real-time market analysis for maximum profit' },
     { icon: Clock, text: '24/7 Auto-Sharing', desc: 'Keep your closet active around the clock' },
-    { icon: Gift, text: 'Free Pro Trial', desc: 'Your friends get 14 days free, you get rewards' },
+    { icon: Gift, text: 'No-Card Setup', desc: 'Start free, upgrade to Pro anytime for $15/month' },
   ]
 
   const steps = [
     { num: '01', title: 'Share Your Code', desc: 'Send your unique referral link to friends' },
-    { num: '02', title: 'They Sign Up', desc: 'They get 14 days of Pro features free' },
+    { num: '02', title: 'They Sign Up', desc: 'They start free with your referral code' },
     { num: '03', title: 'Earn Rewards', desc: '1 month free at 3 referrals, lifetime at 10' },
-  ]
-
-  const testimonials = [
-    { name: 'Sarah M.', handle: '@sarahscloset', text: 'Posh Pal doubled my listing output. I went from 5 items/week to 15!', items: '342', revenue: '+$4,200' },
-    { name: 'James K.', handle: '@jamesvintage', text: 'The auto-sharing bot alone is worth it. My engagement is up 3x.', items: '189', revenue: '+$2,800' },
   ]
 
   return (
@@ -48,7 +43,7 @@ const ReferralLanding = ({ onBack }) => {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button className="bg-brand-500 text-white px-8 py-3.5 rounded-xl font-bold text-base hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
                 <Zap className="w-5 h-5 fill-current" />
-                Start Free Trial
+                Start with Posh Pal
               </button>
               <button className="bg-white/10 text-white px-8 py-3.5 rounded-xl font-bold text-base hover:bg-white/20 transition-all flex items-center justify-center gap-2">
                 <Users className="w-5 h-5" />
@@ -58,7 +53,7 @@ const ReferralLanding = ({ onBack }) => {
             <div className="flex items-center justify-center gap-4 mt-5">
               <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                No credit card
+                $15/mo flat
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -72,16 +67,16 @@ const ReferralLanding = ({ onBack }) => {
       {/* Social Proof */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="card p-4 text-center">
-          <p className="text-2xl font-black text-brand-600">10K+</p>
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Resellers</p>
+          <p className="text-2xl font-black text-brand-600">New</p>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Platform Now Live</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-2xl font-black text-emerald-600">50K+</p>
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Listings Created</p>
+          <p className="text-2xl font-black text-emerald-600">6</p>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Platform Exports</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-2xl font-black text-amber-600">4.9★</p>
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">User Rating</p>
+          <p className="text-2xl font-black text-amber-600">$15/mo</p>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Flat Pro Price</p>
         </div>
       </div>
 
@@ -121,7 +116,7 @@ const ReferralLanding = ({ onBack }) => {
 
       {/* Testimonials (Marketing Asset) */}
       <div className="mb-5">
-        <SocialProofGrid className="card p-6 md:p-8" />
+        {null}
       </div>
 
       {/* SEO Blog Template Placeholder */}
@@ -165,7 +160,7 @@ const ReferralLanding = ({ onBack }) => {
                 </ul>
               </div>
               <p>
-                Ready to write your own success story? <strong className="text-brand-600">Try Posh Pal free for 14 days →</strong>
+                Ready to write your own success story? <strong className="text-brand-600">Start with Posh Pal Pro — $15/month →</strong>
               </p>
             </div>
             {/* SEO Keywords */}
@@ -202,12 +197,12 @@ const ReferralLanding = ({ onBack }) => {
             {
               platform: 'TikTok / Instagram',
               icon: '📱',
-              template: '✨ The tool every Poshmark reseller needs!\n\nPosh Pal automates your listings, sharing, and cross-listing so you can focus on sourcing.\n\nUse code [CODE] for 14 days free → Link in bio',
+              template: '✨ The tool every Poshmark reseller needs!\n\nPosh Pal automates your listings, sharing, and cross-listing so you can focus on sourcing.\n\nStart with my code: [CODE] → Link in bio',
             },
             {
               platform: 'Facebook / Groups',
               icon: '👥',
-              template: '🚀 Poshmark Resellers! I\'ve been using Posh Pal for [X] weeks and it\'s been a game changer for my closet.\n\n✅ AI listing generator\n✅ 24/7 auto-sharing\n✅ Cross-list to eBay, Mercari & Depop\n\nGet 14 days free with my code: [CODE]\nhttps://poshpal.app/ref/[CODE]',
+              template: '🚀 Poshmark Resellers! I\'ve been using Posh Pal for [X] weeks and it\'s been a game changer for my closet.\n\n✅ AI listing generator\n✅ 24/7 auto-sharing\n✅ Cross-list to eBay, Mercari & Depop\n\nStart with my code: [CODE]\nhttps://poshpal.app/ref/[CODE]',
             },
           ].map((share, i) => (
             <div key={i} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">

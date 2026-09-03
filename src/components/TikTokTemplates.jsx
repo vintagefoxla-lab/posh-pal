@@ -239,16 +239,16 @@ const PoshPalIn15 = () => (
     {/* CTA */}
     <g transform="translate(540, 1020)">
       <rect x="-180" y="-30" width="360" height="60" rx="30" fill="url(#brandGrad)" filter="url(#shadow-lg)" />
-      <text x="0" y="8" fontFamily="Inter, sans-serif" fontWeight="900" fontSize="22" fill="#FFFFFF" textAnchor="middle">Start Free Trial →</text>
+      <text x="0" y="8" fontFamily="Inter, sans-serif" fontWeight="900" fontSize="22" fill="#FFFFFF" textAnchor="middle">Start with Posh Pal →</text>
     </g>
 
     {/* Trust badges */}
     <g transform="translate(540, 1100)">
-      <text x="-140" y="0" fontFamily="Inter, sans-serif" fontWeight="700" fontSize="14" fill="#94A3B8" textAnchor="middle">No credit card</text>
+      <text x="-140" y="0" fontFamily="Inter, sans-serif" fontWeight="700" fontSize="14" fill="#94A3B8" textAnchor="middle">$15/mo flat</text>
       <circle cx="0" cy="-6" r="3" fill="#94A3B8" />
       <text x="0" y="0" fontFamily="Inter, sans-serif" fontWeight="700" fontSize="14" fill="#94A3B8" textAnchor="middle">Cancel anytime</text>
       <circle cx="136" cy="-6" r="3" fill="#94A3B8" />
-      <text x="140" y="0" fontFamily="Inter, sans-serif" fontWeight="700" fontSize="14" fill="#94A3B8" textAnchor="middle">14 days free</text>
+      <text x="140" y="0" fontFamily="Inter, sans-serif" fontWeight="700" fontSize="14" fill="#94A3B8" textAnchor="middle">Every feature</text>
     </g>
 
     {/* Bottom */}

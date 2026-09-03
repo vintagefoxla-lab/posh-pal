@@ -9,8 +9,8 @@ import { Sparkles, TrendingUp, Star, Zap, ChevronRight } from 'lucide-react'
  * for use as a blog header component.
  * 
  * Props:
- *   name: string — reseller name (e.g., "Sarah M.")
- *   handle: string — social handle (e.g., "@sarahscloset")
+ *   name: string — reseller name (e.g., "Posh Pal Reseller")
+ *   handle: string — social handle (e.g., "@reseller")
  *   growth: string — profit increase (e.g., "+$2,000/mo")
  *   growthPercent: string — percentage growth (e.g., "+200%")
  *   niche: string — reseller niche (e.g., "Vintage & Designer")
@@ -20,7 +20,7 @@ import { Sparkles, TrendingUp, Star, Zap, ChevronRight } from 'lucide-react'
  * 
  * Usage:
  *   <FeaturedSuccessStoryHeader 
- *     name="Sarah M." 
+ *     name="Posh Pal Reseller" 
  *     growth="+$2,000/mo" 
  *     growthPercent="+200%" 
  *     ...
@@ -28,14 +28,14 @@ import { Sparkles, TrendingUp, Star, Zap, ChevronRight } from 'lucide-react'
  */
 
 const FeaturedSuccessStoryHeader = ({
-  name = 'Sarah M.',
-  handle = '@sarahscloset',
-  growth = '+$2,000/mo',
-  growthPercent = '+200%',
-  niche = 'Vintage & Designer',
-  avatarInitial = 'S',
-  beforeRevenue = '$800/mo',
-  afterRevenue = '$2,800/mo'
+  name = 'Posh Pal Reseller',
+  handle = '',
+  growth = '',
+  growthPercent = '',
+  niche = 'Poshmark Reselling',
+  avatarInitial = 'P',
+  beforeRevenue = '',
+  afterRevenue = ''
 }) => {
   return (
     <div className="relative w-full overflow-hidden" style={{ aspectRatio: '1200/630' }}>
@@ -73,39 +73,45 @@ const FeaturedSuccessStoryHeader = ({
         </div>
 
         {/* ─── Main Stat ──────────────────────────────────────────── */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-brand-500/15 border border-brand-400/30 rounded-full px-5 py-2 mb-5">
-            <TrendingUp className="w-5 h-5 text-emerald-400" />
-            <span className="text-base font-black text-emerald-300 uppercase tracking-widest">
-              {growthPercent} Profit Growth
-            </span>
-          </div>
-        </div>
-
-        {/* ─── Revenue Comparison ─────────────────────────────────── */}
-        <div className="flex items-center gap-8 mb-8">
-          {/* Before */}
-          <div className="text-center">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Before</p>
-            <p className="text-2xl font-black text-slate-500 line-through decoration-slate-600">{beforeRevenue}</p>
-          </div>
-          
-          {/* Arrow */}
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-px bg-gradient-to-r from-slate-600 via-brand-400 to-slate-600" />
-            <ChevronRight className="w-5 h-5 text-brand-400 -mt-2.5" />
-          </div>
-          
-          {/* After */}
-          <div className="text-center">
-            <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1.5">After Posh Pal</p>
-            <p className="text-4xl font-black text-white">{afterRevenue}</p>
-            <div className="flex items-center justify-center gap-1 mt-1.5">
-              <Zap className="w-3.5 h-3.5 text-amber-400 fill-current" />
-              <span className="text-xs font-black text-amber-400 uppercase tracking-wider">{growthPercent}</span>
+        {growthPercent && (
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-brand-500/15 border border-brand-400/30 rounded-full px-5 py-2 mb-5">
+              <TrendingUp className="w-5 h-5 text-emerald-400" />
+              <span className="text-base font-black text-emerald-300 uppercase tracking-widest">
+                {growthPercent} Profit Growth
+              </span>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* ─── Revenue Comparison ─────────────────────────────────── */}
+        {beforeRevenue && afterRevenue && (
+          <div className="flex items-center gap-8 mb-8">
+            {/* Before */}
+            <div className="text-center">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Before</p>
+              <p className="text-2xl font-black text-slate-500 line-through decoration-slate-600">{beforeRevenue}</p>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-px bg-gradient-to-r from-slate-600 via-brand-400 to-slate-600" />
+              <ChevronRight className="w-5 h-5 text-brand-400 -mt-2.5" />
+            </div>
+
+            {/* After */}
+            <div className="text-center">
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1.5">After Posh Pal</p>
+              <p className="text-4xl font-black text-white">{afterRevenue}</p>
+              {growthPercent && (
+                <div className="flex items-center justify-center gap-1 mt-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-current" />
+                  <span className="text-xs font-black text-amber-400 uppercase tracking-wider">{growthPercent}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ─── Reseller Info ──────────────────────────────────────── */}
         <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 backdrop-blur-sm">
@@ -131,10 +137,12 @@ const FeaturedSuccessStoryHeader = ({
           </div>
           
           {/* Growth stat */}
-          <div className="ml-auto text-right">
-            <p className="text-2xl font-black text-emerald-400">{growth}</p>
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Monthly Growth</p>
-          </div>
+          {growth && (
+            <div className="ml-auto text-right">
+              <p className="text-2xl font-black text-emerald-400">{growth}</p>
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Monthly Growth</p>
+            </div>
+          )}
         </div>
 
         {/* ─── Bottom Tagline ─────────────────────────────────────── */}

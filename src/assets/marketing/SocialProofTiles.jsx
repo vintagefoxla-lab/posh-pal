@@ -17,47 +17,7 @@ import { Quote, Star, TrendingUp, BadgeCheck, ShoppingBag, Zap, Sparkles, Heart 
  *   <SocialProofTile influencer={...} variant="default|compact|featured" />
  */
 
-const INFLUENCERS = [
-  {
-    id: 'hustle-home-mom',
-    name: 'Hustle at Home Mom',
-    handle: '@hustleathomemom',
-    initial: 'H',
-    niche: 'Family Reseller · 50K+ Followers',
-    quote: 'Posh Pal completely transformed how I manage my closet. The auto-sharing bot alone saves me 3+ hours every single day — time I now spend with my family.',
-    stat: '+$3,200/mo',
-    statLabel: 'added revenue',
-    verified: true,
-    featured: true,
-    gradient: 'from-brand-500 to-violet-600'
-  },
-  {
-    id: 'mogi-beth',
-    name: 'Mogi Beth',
-    handle: '@mogibeth',
-    initial: 'M',
-    niche: 'Vintage Curator · 35K+ Followers',
-    quote: 'As a full-time vintage seller, cross-listing was my biggest bottleneck. Posh Pal exports my listings to 6 platforms in one click. Absolute game changer.',
-    stat: '+$1,500/mo',
-    statLabel: 'added revenue',
-    verified: true,
-    featured: false,
-    gradient: 'from-emerald-500 to-teal-600'
-  },
-  {
-    id: 'rebel-reseller',
-    name: 'Rebel Reseller',
-    handle: '@rebelreseller',
-    initial: 'R',
-    niche: 'Streetwear Specialist · 28K+ Followers',
-    quote: 'The AI listing generator is insane. I take one photo and boom — optimized title, description, and tags. My listings sell 2x faster now.',
-    stat: '+$2,800/mo',
-    statLabel: 'added revenue',
-    verified: true,
-    featured: false,
-    gradient: 'from-rose-500 to-pink-600'
-  }
-]
+const INFLUENCERS = []
 
 // ─── Individual Tile ──────────────────────────────────────────────────
 
@@ -169,7 +129,7 @@ export const SocialProofGrid = ({ className = '' }) => {
       {/* Section header */}
       <div className="flex items-center gap-2 px-1">
         <Heart className="w-5 h-5 text-rose-500" />
-        <h2 className="text-lg font-black text-slate-900">Trusted by Top Resellers</h2>
+        <h2 className="text-lg font-black text-slate-900">Resellers Getting Started</h2>
       </div>
 
       {/* Featured influencer (large card) */}
@@ -193,15 +153,15 @@ export const SocialProofGrid = ({ className = '' }) => {
       <div className="flex flex-wrap items-center justify-center gap-6 py-4 px-6 bg-slate-50 rounded-2xl border border-slate-100">
         <div className="flex items-center gap-2">
           <ShoppingBag className="w-4 h-4 text-brand-500" />
-          <span className="text-xs font-bold text-slate-700">10K+ Active Resellers</span>
+          <span className="text-xs font-bold text-slate-700">New platform — community growing</span>
         </div>
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-amber-500" />
-          <span className="text-xs font-bold text-slate-700">50K+ Listings Created</span>
+          <span className="text-xs font-bold text-slate-700">AI listings, sharing & cross-listing</span>
         </div>
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-emerald-500" />
-          <span className="text-xs font-bold text-slate-700">$2M+ Seller Revenue</span>
+          <span className="text-xs font-bold text-slate-700">$15/mo flat Pro price</span>
         </div>
       </div>
     </div>

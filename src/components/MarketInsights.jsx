@@ -306,6 +306,9 @@ const MarketInsights = ({ brand, category, condition, tierName, demand, poshpal_
         <span className="badge-accent text-[9px]">Pro</span>
         <span className="text-xs font-bold text-slate-400">Market Insights</span>
       </div>
+      <p className="text-[10px] text-slate-400 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+        Simulated sample data for illustration — not based on real market figures.
+      </p>
 
       {/* Demand Chart */}
       <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
