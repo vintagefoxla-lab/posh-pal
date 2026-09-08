@@ -110,7 +110,7 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
   res.json({received: true});
 });
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '25mb' }));
 
 // Authentication & Subscription Verification Middleware
 const auth = (req, res, next) => {
@@ -1320,6 +1320,15 @@ setInterval(() => {
     console.error('Conversion Simulator Error:', error);
   }
 }, 450000); // Every 7.5 minutes
+
+// JSON error handler — the API must NEVER return HTML to the client. body-parser
+// throws PayloadTooLargeError (413) as an HTML page by default when a request
+// exceeds the JSON body limit; catch it (and anything else) and emit JSON.
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || (err.type === 'entity.too.large' ? 413 : 500);
+  if (status >= 500) console.error(`Unhandled error: ${err.message}`);
+  res.status(status).json({ error: err.message || 'Internal server error' });
+});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
