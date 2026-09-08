@@ -425,7 +425,7 @@ app.post('/api/ai/analyze', async (req, res) => {
     if (!genAI) {
       // NO Gemini API key configured. Never serve canned/fabricated listings to
       // a real user — return an honest error so the AI service status is clear.
-      return res.status(503).json({ error: 'AI service not configured. Please try again later.' });
+      return res.status(503).json({ error: 'AI service not configured. Please add the Gemini API key (VITE_GEMINI_API_KEY).' });
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });

@@ -252,7 +252,7 @@ for ANY photo. That is fabricated analysis presented to a real user.
 ### Fix (applied)
 - **server.js** — removed the canned-mock block in `/api/ai/analyze`. When
   `genAI` is not configured the API now returns an honest
-  `503 { error: 'AI service not configured. Please try again later.' }`.
+  `503 { error: 'AI service not configured. Please add the Gemini API key (VITE_GEMINI_API_KEY).' }`.
   (Body-limit fix in the same PR still applies: 25mb JSON limit + JSON error
   handler so the API never returns HTML — see section 9/PR #7.)
 - **src/services/aiService.js** — removed `simulateMultiPhotoAI` and the
@@ -280,7 +280,7 @@ for ANY photo. That is fabricated analysis presented to a real user.
      -d '{"images":["data:image/jpeg;base64,<tiny-test>"]}'
    ```
    Expect a real Gemini-generated JSON listing (200). Without the key the same
-   call must return 503 `{ error: 'AI service not configured...' }`.
+   call must return 503 `{ error: 'AI service not configured. Please add the Gemini API key (VITE_GEMINI_API_KEY).' }`.
 
 **Never invent or fake an API key or AI response.** Until the owner provides a
 real key, the honest 503 is the correct production behavior.
