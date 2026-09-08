@@ -187,3 +187,56 @@ host, or live-site proxy swap. Domain is still registering. No real paid checkou
 - At DNS cutover: point `api.posh-pal.com` A record at `159.89.80.50`, switch
   Caddy to the `__DOMAIN__` auto-HTTPS config (repo `deploy/Caddyfile`), point
   the Stripe webhook endpoint here, and update `VITE_API_URL`.
+
+## 10. INCIDENT: Inventory Manager 500s — "bun: Permission denied" (2026-09-08, FIXED)
+
+### Symptom (owner report)
+Using the Inventory Manager (list, save, add, delete) returned errors
+"The string did not match the expected pattern." and/or 500 responses
+(`{"error":"Failed to fetch/add/update/delete inventory item"}`).
+
+### Root cause (confirmed)
+The API shells out to `team-db` (`/usr/local/bin/team-db` -> symlink ->
+`/opt/team-skills/team-db/cli.ts`, shebang `#!/usr/bin/env bun`) for EVERY
+DB query. The systemd service runs as user **poshpal**, but `/usr/local/bin/bun`
+was a **symlink into /root** (`/usr/local/bin/bun -> /root/.bun/bin/bun`).
+`poshpal` cannot traverse `/root` (mode 700), so every `team-db` invocation
+failed with `Database Error: /usr/bin/env: 'bun': Permission denied`; each
+inventory handler caught it and returned **500**. Verify with:
+`journalctl -u poshpal-api | grep -i bun`.
+
+The web-facing "pattern" string was a symptom of this same broken toolchain
+(runtime/validation failure in the team-db->libsql path), NOT present in the
+frontend, server.js, schema, or bundles (0 hits everywhere verified).
+
+### Fix applied on the droplet
+```bash
+# 1) Replace symlink-into-/root with a REAL world-readable bun binary
+rm -f /usr/local/bin/bun
+install -o root -g root -m 0755 /root/.bun/bin/bun /usr/local/bin/bun
+su -s /bin/bash poshpal -c '/usr/local/bin/bun --version'    # MUST print version
+
+# 2) Verify team-db AS the service user (NOT root) with the service env
+install -o poshpal -g poshpal -m 600 /etc/posh-pal/env /tmp/pp-env-test
+su -s /bin/bash poshpal -c 'set -a; source /tmp/pp-env-test; set +a; /usr/local/bin/team-db "SELECT COUNT(*) FROM agents"'
+rm -f /tmp/pp-env-test
+
+# 3) The systemd unit file had been removed from /etc/systemd/system (the
+#    service kept running as an orphan). Recreate from deploy/poshpal-api.service,
+#    daemon-reload, kill the orphan PID, start fresh, enable:
+systemctl daemon-reload
+systemctl start poshpal-api && systemctl enable poshpal-api
+```
+
+Also: `deploy/install-team-db.sh` now installs bun as a real binary and runs a
+service-user smoke test so this failure class fails fast at install time.
+
+### Verification (all through the LIVE public URL)
+- GET /api/inventory (default_user) -> 200 real rows
+- POST -> 200 {"success":true}; PUT -> 200; DELETE -> 200
+- Caddy /healthz -> 200; poshpal-api active; journal shows no bun/denied errors
+- Local replica created at /var/lib/posh-pal/team.db on first successful sync
+
+**Gotcha:** after replacing a symlink into `/root`, always verify the target
+binary AS THE SERVICE USER — `ls /root/...` as root passes while the service
+user still gets EACCES.
