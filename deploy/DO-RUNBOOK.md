@@ -240,3 +240,47 @@ service-user smoke test so this failure class fails fast at install time.
 **Gotcha:** after replacing a symlink into `/root`, always verify the target
 binary AS THE SERVICE USER — `ls /root/...` as root passes while the service
 user still gets EACCES.
+
+## 11. AI Listing Generator: honest no-key behavior + Gemini key wire-up (2026-09-08)
+
+### Problem (owner report)
+The owner uploaded a photo of a PURSE and the generator returned "Lululemon Align
+High-Rise Pant" — a canned mock. Root cause: with no `VITE_GEMINI_API_KEY` on the
+droplet, `/api/ai/analyze` served a random hardcoded mock (Patagonia/Lululemon)
+for ANY photo. That is fabricated analysis presented to a real user.
+
+### Fix (applied)
+- **server.js** — removed the canned-mock block in `/api/ai/analyze`. When
+  `genAI` is not configured the API now returns an honest
+  `503 { error: 'AI service not configured. Please add the Gemini API key (VITE_GEMINI_API_KEY).' }`.
+  (Body-limit fix in the same PR still applies: 25mb JSON limit + JSON error
+  handler so the API never returns HTML — see section 9/PR #7.)
+- **src/services/aiService.js** — removed `simulateMultiPhotoAI` and the
+  no-userFetch fallback to canned mocks; it now throws an honest error.
+- Grep-verified: `simulateMultiPhotoAI`, "Patagonia Better Sweater",
+  "Lululemon Align", "Running in Simulation Mode" no longer exist in server.js
+  or src/ (the only remaining "Patagonia Better Sweater" string is a static
+  CrossListing example, not AI-analysis output).
+
+### Wire-up readiness — how to activate REAL Gemini analysis
+1. Owner provides a Gemini API key (Google AI Studio → Get API key →
+   create key for the project).
+2. On the droplet, add it to the service env file (mode 600, owned by poshpal):
+   ```bash
+   echo 'VITE_GEMINI_API_KEY=AIza...' >> /etc/posh-pal/env   # NEVER log the key
+   chown poshpal:poshpal /etc/posh-pal/env && chmod 600 /etc/posh-pal/env
+   systemctl restart poshpal-api
+   ```
+3. `server.js` already boots `genAI = new GoogleGenerativeAI(process.env.VITE_GEMINI_API_KEY)`
+   when the key is present — no code change needed for activation.
+4. Verify through the live URL:
+   ```bash
+   curl -s -X POST https://<live-url>/api/ai/analyze \
+     -H "content-type: application/json" -H "x-user-id: default_user" \
+     -d '{"images":["data:image/jpeg;base64,<tiny-test>"]}'
+   ```
+   Expect a real Gemini-generated JSON listing (200). Without the key the same
+   call must return 503 `{ error: 'AI service not configured. Please add the Gemini API key (VITE_GEMINI_API_KEY).' }`.
+
+**Never invent or fake an API key or AI response.** Until the owner provides a
+real key, the honest 503 is the correct production behavior.

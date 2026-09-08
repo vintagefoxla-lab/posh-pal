@@ -110,7 +110,7 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
   res.json({received: true});
 });
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '25mb' }));
 
 // Authentication & Subscription Verification Middleware
 const auth = (req, res, next) => {
@@ -423,29 +423,9 @@ app.post('/api/ai/analyze', async (req, res) => {
     const imagesToAnalyze = images.slice(0, maxPhotos);
 
     if (!genAI) {
-      console.log("AI Backend: Running in Simulation Mode (No API Key)");
-      // Simulate delay
-      await new Promise(resolve => setTimeout(resolve, 1000 * imagesToAnalyze.length));
-      
-      const mocks = [
-        {
-          title: "Premium Patagonia Better Sweater 1/4 Zip - Men's M",
-          description: "Authentic Patagonia Better Sweater in excellent condition. Multi-photo analysis confirmed high quality and zero flaws.",
-          tags: "Patagonia, Outdoors, Fleece, Sustainable, Gorpcore",
-          hashtags: "#patagonia #bettersweater #outdoors #hiking #fleece"
-        },
-        {
-          title: "Lululemon Align High-Rise Pant 25\" - Black - Size 6",
-          description: "Like new Lululemon Align leggings in classic black. Analysis of all angles confirms authenticity and perfect stitching.",
-          tags: "Lululemon, Yoga, Leggings, Activewear, Athleisure",
-          hashtags: "#lululemon #align #yoga #activewear #athleisure"
-        }
-      ];
-      const result = mocks[Math.floor(Math.random() * mocks.length)];
-      if (imagesToAnalyze.length > 1) {
-        result.description += `\n\n(AI verified across ${imagesToAnalyze.length} photos)`;
-      }
-      return res.json(result);
+      // NO Gemini API key configured. Never serve canned/fabricated listings to
+      // a real user — return an honest error so the AI service status is clear.
+      return res.status(503).json({ error: 'AI service not configured. Please add the Gemini API key (VITE_GEMINI_API_KEY).' });
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -1320,6 +1300,15 @@ setInterval(() => {
     console.error('Conversion Simulator Error:', error);
   }
 }, 450000); // Every 7.5 minutes
+
+// JSON error handler — the API must NEVER return HTML to the client. body-parser
+// throws PayloadTooLargeError (413) as an HTML page by default when a request
+// exceeds the JSON body limit; catch it (and anything else) and emit JSON.
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || (err.type === 'entity.too.large' ? 413 : 500);
+  if (status >= 500) console.error(`Unhandled error: ${err.message}`);
+  res.status(status).json({ error: err.message || 'Internal server error' });
+});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
